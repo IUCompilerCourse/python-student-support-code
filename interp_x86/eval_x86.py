@@ -72,7 +72,7 @@ class X86Emulator:
 
     def eval_instructions(self, s):
         import pandas as pd
-        
+
         p = x86_parser_instrs.parse(s)
 
         assert p.data == 'instrs'
