@@ -202,8 +202,6 @@ def is_python_extension(filename):
 # expected "golden" output.
 def test_pass(passname, interp, program_root, ast,
               compiler_name):
-    if not interp:
-        return 0
     input_file = program_root + '.in'
     output_file = program_root + '.out'
     stdin = sys.stdin
@@ -230,11 +228,7 @@ def compile_and_test(compiler, compiler_name, type_check_P, interp_P, interp_C,
                      program_filename):
     total_passes = 0
     successful_passes = 0
-    emulate_x86 = True
-    if emulate_x86:
-        from interp_x86.eval_x86 import interp_x86
-    else:
-        interp_x86 = None
+    from interp_x86.eval_x86 import interp_x86
 
     program_root = program_filename.split('.')[0]
     with open(program_filename) as source:
@@ -297,16 +291,17 @@ def compile_and_test(compiler, compiler_name, type_check_P, interp_P, interp_C,
         test_pass('patch instructions', interp_x86, program_root, x86,
                   compiler_name)
 
-    trace('\n**********\n print x86 \n**********\n')            
+    trace('\n**********\n prelude and conclusion \n**********\n')
+    x86 = compiler.prelude_and_conclusion(x86)
+    
     x86_filename = program_root + ".s"
     with open(x86_filename, "w") as dest:
-        dest.write(compiler.print_x86(x86))
-
-    x86 = compiler.generate_main(x86)
+        dest.write(repr(x86))
         
     total_passes += 1
         
-    # Run the x86 program
+    # Run the final x86 program
+    emulate_x86 = False
     if emulate_x86:
         stdin = sys.stdin
         stdout = sys.stdout

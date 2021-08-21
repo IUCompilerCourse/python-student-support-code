@@ -1,4 +1,5 @@
 from typing import List
+from utils import label_name
 
 class X86Program:
     __match_args__ = ("body",)
@@ -8,10 +9,15 @@ class X86Program:
         result = ''
         if type(self.body) == dict:
             for (l,ss) in self.body.items():
+                if l == label_name('main'):
+                    result += '\t.globl ' + label_name('main') + '\n'
                 result += l + ':\n'
                 result += '\n'.join([repr(s) for s in ss]) + '\n\n'
         else:
-            result = '\n'.join([repr(s) for s in self.body])
+            result += '\t.globl ' + label_name('main') + '\n' + \
+                      label_name('main') + ':\n'
+            result += '\n'.join([repr(s) for s in self.body])
+        result += '\n'
         return result
                 
 class instr: ...
@@ -31,7 +37,7 @@ class Instr(instr):
     def target(self):
         return self.args[-1]
     def __repr__(self):
-        return self.instr + ' ' + ', '.join(repr(a) for a in self.args)
+        return '\t' + self.instr + ' ' + ', '.join(repr(a) for a in self.args)
     
 class Callq(instr):
     __match_args__ = ("func", "num_args")
@@ -39,8 +45,28 @@ class Callq(instr):
         self.func = func
         self.num_args = num_args
     def __repr__(self):
-        return 'callq' + ' ' + self.func
+        return '\tcallq' + ' ' + self.func
     
+class JumpIf(instr):
+    cc: str
+    label: str
+    
+    __match_args__ = ("cc", "label")
+    def __init__(self, cc, label):
+        self.cc = cc
+        self.label = label
+    def __repr__(self):
+        return '\tj' + self.cc + ' ' + self.label
+
+class Jump(instr):
+    label: str
+    
+    __match_args__ = ("label",)
+    def __init__(self, label):
+        self.label = label
+    def __repr__(self):
+        return '\tjmp ' + self.label
+
 class Variable(location):
     __match_args__ = ("id",)
     def __init__(self, id):
@@ -60,7 +86,7 @@ class Immediate(arg):
     def __init__(self, value):
         self.value = value
     def __repr__(self):
-        return repr(self.value)
+        return '$' +  repr(self.value)
     def __eq__(self, other):
         if isinstance(other, Immediate):
             return self.value == other.value
@@ -112,22 +138,3 @@ class Deref(arg):
     def __hash__(self):
         return hash((self.reg, self.offset))
 
-class JumpIf(instr):
-    cc: str
-    label: str
-    
-    __match_args__ = ("cc", "label")
-    def __init__(self, cc, label):
-        self.cc = cc
-        self.label = label
-    def __repr__(self):
-        return 'j' + self.cc + ' ' + self.label
-
-class Jump(instr):
-    label: str
-    
-    __match_args__ = ("label",)
-    def __init__(self, label):
-        self.label = label
-    def __repr__(self):
-        return 'jmp ' + self.label
