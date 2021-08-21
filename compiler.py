@@ -92,17 +92,10 @@ class Compiler:
         pass        
 
     ############################################################################
-    # Print x86
+    # Prelude & Conclusion
     ############################################################################
 
-    def print_x86(self, p: X86Program) -> str:
+    def prelude_and_conclusion(self, p: X86Program) -> X86Program:
         # YOUR CODE HERE
         pass        
 
-    def print_instr(self, i: instr) -> str:
-        # YOUR CODE HERE
-        pass        
-
-    def print_arg(self, a: arg) -> str:
-        # YOUR CODE HERE
-        pass        
