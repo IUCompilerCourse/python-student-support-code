@@ -1,27 +1,39 @@
-def swap(A, i, j):
-    tmp = A[i]
-    A[i] = A[j]
-    A[j] = tmp
+class PriorityQueue:
+    def __init__(self, less):
+        self.heap = Heap([], less, update_position)
+        self.get_key_and_pos = {}
 
-def less(x, y):
-    return x < y
+    def __repr__(self):
+        return repr(self.heap)
 
-def less_key(x, y):
-    return x.key < y.key
+    def push(self, key):
+        kp = KeyWithPosition(key)
+        self.get_key_and_pos[key] = kp
+        self.heap.insert(kp)
 
-def update_position(obj, pos):
-    obj.position = pos
+    def pop(self):
+        return self.heap.extract_max().key
 
-def get_position(obj):
-    return obj.position
+    def increase_key(self, key):
+        obj = self.get_key_and_pos[key]
+        heap_increase_key(self.heap, obj.position)
 
-def ignore_update(obj, pos):
-    pass
+    def empty(self):
+        return self.heap.heap_size == 0
+
+class KeyWithPosition:
+    def __init__(self, k):
+        self.key = k
+        self.position = -1
+
+    def __repr__(self):
+        return str(self.key) + '@' + repr(self.position)
+
+def update_position(key_with_pos, pos):
+    key_with_pos.position = pos
 
 class Heap:
-    def __init__(self, data, 
-                 less = less,
-                 update = ignore_update):
+    def __init__(self, data, less, update):
         self.data = data
         self.less = less
         self.update = update
@@ -64,6 +76,11 @@ def right(i):
 def parent(i):
     return (i-1) // 2
 
+def swap(A, i, j):
+    tmp = A[i]
+    A[i] = A[j]
+    A[j] = tmp
+
 def heap_increase_key(H, i):
     while i > 0 and H.less(H.data[parent(i)], H.data[i]):
         swap(H.data, i, parent(i))
@@ -100,73 +117,48 @@ def heap_sort(H):
         H.heap_size -= 1
         max_heapify(H, 0)
 
-class PriorityQueue:
-    def __init__(self, less=less_key, update=update_position, get=get_position):
-        self.heap = Heap([], less=less, update=update)
-        self.get_position = get
-        self.get_object = {}
+def less(x, y):
+    return x < y
 
-    def __repr__(self):
-        return repr(self.heap)
-
-    def push(self, key):
-        o = Obj(key)
-        self.get_object[key] = o
-        self.heap.insert(o)
-
-    def pop(self):
-        return self.heap.extract_max().key
-
-    def increase_key(self, key):
-        obj = self.get_object[key]
-        heap_increase_key(self.heap, self.get_position(obj))
-
-    def empty(self):
-        return self.heap.heap_size == 0
-
-class Obj:
-    def __init__(self, k):
-        self.key = k
-        self.position = -1
-
-    def __repr__(self):
-        return str(self.key) + '@' + repr(self.position)
+def ignore_update(obj, pos):
+    pass
 
 if __name__ == "__main__":
-    # test build and extract_max
+    # test Heap build and extract_max
     L = [4,3,5,1,2]
-    h = Heap(L)
+    h = Heap(L, less, ignore_update)
     for i in range(5, 0, -1):
         assert h.extract_max() == i
 
-    # test insert
+    # test Heap insert
     L = [4,3,5,1,2]
     for k in L:
         h.insert(k)
     for i in range(5, 0, -1):
         assert h.extract_max() == i
     
-    # test sort
+    # test heap_sort
     L = [4,3,5,1,2]
-    heap_sort(Heap(L))
+    h = Heap(L, less, ignore_update)
+    heap_sort(h)
     for i in range(0, 5):
         assert L[i] == i + 1
 
-    # Test priority queue
-    # Q = PriorityQueue()
-    # for i in range(1, 6):
-    #     Q.push(Obj(i))
-    # for i in range(5, 0, -1):
-    #     assert Q.pop().key == i
-
+    # test PriorityQeueue push and pop
     L = {'a': 4, 'b': 3, 'c':5,'d':1,'e':2}
     def less(x, y):
         return L[x.key] < L[y.key]
     Q = PriorityQueue(less)
     for k, v in L.items():
         Q.push(k)
-
+    P = ['c', 'a', 'b', 'e', 'd']
+    for i in range(0, len(P)):
+        assert Q.pop() == P[i]
+        
     # test increase_key
+    Q = PriorityQueue(less)
+    for k, v in L.items():
+        Q.push(k)
     for k, v in L.items():
         L[k] = v + 2
         Q.increase_key(k)
