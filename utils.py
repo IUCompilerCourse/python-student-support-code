@@ -7,32 +7,48 @@ from ast import *
 # repr for classes in the ast module
 ################################################################################
 
+indent_amount = 0
+
+def indent_stmt():
+    return " " * indent_amount
+
+def indent():
+    global indent_amount
+    indent_amount += 2
+
+def dedent():
+    global indent_amount
+    indent_amount -= 2
+
 def str_Module(self):
-    return '\n'.join([str(s) for s in self.body])
+    indent()
+    body = ''.join([str(s) for s in self.body])
+    dedent()
+    return body
 Module.__str__ = str_Module
 def repr_Module(self):
     return 'Module(' + repr(self.body) + ')'
 Module.__repr__ = repr_Module
 
 def str_Expr(self):
-    return str(self.value)
+    return indent_stmt() + str(self.value) + '\n'
 Expr.__str__ = str_Expr
 def repr_Expr(self):
-    return 'Expr(' + repr(self.value) + ')'
+    return indent_stmt() + 'Expr(' + repr(self.value) + ')'
 Expr.__repr__ = repr_Expr
 
 def str_Assign(self):
-    return str(self.targets[0]) + ' = ' + str(self.value)
+    return indent_stmt() + str(self.targets[0]) + ' = ' + str(self.value) + '\n'
 Assign.__str__ = str_Assign
 def repr_Assign(self):
-    return 'Assign(' + repr(self.targets) + ', ' + repr(self.value) + ')'
+    return indent_stmt() + 'Assign(' + repr(self.targets) + ', ' + repr(self.value) + ')'
 Assign.__repr__ = repr_Assign
 
 def str_Return(self):
-    return 'return ' + str(self.value)
+    return indent_stmt() + 'return ' + str(self.value) + '\n'
 Return.__str__ = str_Return
 def repr_Return(self):
-    return 'Return(' + repr(self.value) + ')'
+    return indent_stmt() + 'Return(' + repr(self.value) + ')'
 Return.__repr__ = repr_Return
 
 def str_Name(self):
@@ -84,6 +100,9 @@ def repr_BinOp(self):
     return 'BinOp(' + repr(self.left) + ', ' + repr(self.op) + ', ' + repr(self.right) + ')'
 BinOp.__repr__ = repr_BinOp
 
+def str_BoolOp(self):
+    return str(self.values[0]) + ' ' + str(self.op) + ' ' + str(self.values[1])
+BoolOp.__str__ = str_BoolOp
 def repr_BoolOp(self):
     return repr(self.values[0]) + ' ' + repr(self.op) + ' ' + repr(self.values[1])
 BoolOp.__repr__ = repr_BoolOp
@@ -118,10 +137,12 @@ def repr_Call(self):
 Call.__repr__ = repr_Call
 
 def str_If(self):
-    return 'if ' + str(self.test) + ':\n' \
-        + '  ' + '\n  '.join([str(s) for s in self.body]) + '\n' \
-        + 'else:\n' \
-        + '  ' + '\n  '.join([str(s) for s in self.orelse]) + '\n'
+    header = indent_stmt() + 'if ' + str(self.test) + ':\n'
+    indent()
+    thn = ''.join([str(s) for s in self.body])
+    els = ''.join([str(s) for s in self.orelse])
+    dedent()
+    return header  + thn + indent_stmt() + 'else:\n' + els
 If.__str__ = str_If
 def repr_If(self):
     return 'If(' + repr(self.test) + ', ' + repr(self.body) + ', ' + repr(self.orelse) + ')'
@@ -136,8 +157,11 @@ def repr_IfExp(self):
 IfExp.__repr__ = repr_IfExp
 
 def str_While(self):
-    return 'while ' + str(self.test) + ':\n' \
-        + '  ' + '\n  '.join([str(s) for s in self.body]) + '\n' 
+    header = indent_stmt() + 'while ' + str(self.test) + ':\n'
+    indent()
+    body = ''.join([str(s) for s in self.body])
+    dedent()
+    return header + body
 While.__str__ = str_While
 def repr_While(self):
     return 'While(' + repr(self.test) + ', ' + repr(self.body) + ', ' + repr(self.orelse) + ')'
@@ -193,6 +217,20 @@ def repr_GtE(self):
     return 'GtE()'
 GtE.__repr__ = repr_GtE
 
+def str_Tuple(self):
+    return '(' + ','.join([str(e) for e in self.elts])  + ',)'
+Tuple.__str__ = str_Tuple
+def repr_Tuple(self):
+    return 'Tuple(' + repr(self.elts) + ')'
+Tuple.__repr__ = repr_Tuple
+
+def str_Subscript(self):
+    return str(self.value) + '[' + str(self.slice) + ']'
+Subscript.__str__ = str_Subscript
+def repr_Subscript(self):
+    return 'Subscript(' + repr(self.value) + ', ' + repr(self.slice) + ')'
+Subscript.__repr__ = repr_Subscript
+
 
 ################################################################################
 # __eq__ and __hash__ for classes in the ast module
@@ -217,10 +255,10 @@ name_id = 0
 
 def generate_name(name):
     global name_id
-    ls = name.split('_')
+    ls = name.split('.')
     new_id = name_id
     name_id += 1
-    return ls[0] + "_" + str(new_id)
+    return ls[0] + '.' + str(new_id)
 
 
 ################################################################################
@@ -233,9 +271,12 @@ class Let(expr):
         self.var = var
         self.rhs = rhs
         self.body = body
+    def __str__(self):
+        return '(let ' + str(self.var) + ' = ' + str(self.rhs) + ' in ' \
+            + str(self.body) + ')'
     def __repr__(self):
-        return 'let ' + repr(self.var) + ' = ' + repr(self.rhs) + ' in ' \
-            + repr(self.body)
+        return 'Let(' + repr(self.var) + ',' + repr(self.rhs) + ',' \
+            + repr(self.body) + ')'
 
 def make_lets(bs, e):
     result = e
@@ -252,22 +293,75 @@ class CProgram:
         result = ''
         for (l,ss) in self.body.items():
             result += l + ':\n'
-            result += '\n'.join([str(s) for s in ss]) + '\n\n'
+            indent()
+            result += ''.join([str(s) for s in ss]) + '\n'
+            dedent()
         return result
 
     def __repr__(self):
         return 'CProgram(' + repr(self.body) + ')'
     
-class Goto(expr):
+class Goto(stmt):
     __match_args__ = ("label",)
     def __init__(self, label):
         self.label = label
     def __str__(self):
-        return 'goto ' + self.label
+        return indent_stmt() + 'goto ' + self.label + '\n'
     def __repr__(self):
         return 'Goto(' + repr(self.label) + ')'
 
+class Allocate(expr):
+    __match_args__ = ("length", "ty")
+    def __init__(self, length, ty):
+        self.length = length
+        self.ty = ty
+    def __str__(self):
+        return 'allocate(' + str(self.length) + ',' + str(self.ty) + ')'
+    def __repr__(self):
+        return 'Allocate(' + repr(self.length) + ',' + repr(self.ty) + ')'
+
+class Collect(stmt):
+    __match_args__ = ("size",)
+    def __init__(self, size):
+        self.size = size
+    def __str__(self):
+        return indent_stmt() + 'collect(' + str(self.size) + ')\n'
+    def __repr__(self):
+        return 'Collect(' + repr(self.size) + ')'
     
+class Begin(expr):
+    __match_args__ = ("body", "result")
+    def __init__(self, body, result):
+        self.body = body
+        self.result = result
+    def __str__(self):
+        indent()
+        stmts = ''.join([str(s) for s in self.body])
+        end = indent_stmt() + str(self.result)
+        dedent()
+        return 'begin:\n' + stmts + end
+    def __repr__(self):
+        return 'Begin(' + repr(self.body) + ',' + repr(self.result) + ')'
+
+class GlobalValue(expr):
+    __match_args__ = ("name",)
+    def __init__(self, name):
+        self.name = name
+    def __str__(self):
+        return str(self.name)
+    def __repr__(self):
+        return 'GlobalValue(' + repr(self.name) + ')'
+
+class TupleType:
+    __match_args__ = ("types",)
+    def __init__(self, types):
+        self.types = types
+    def __str__(self):
+        return 'tuple' + str(self.types)
+    def __repr__(self):
+        return 'TupleType(' + repr(self.types) + ')'
+    
+        
 ################################################################################
 # Miscellaneous Auxiliary Functions
 ################################################################################
@@ -288,6 +382,12 @@ def align(n: int, alignment: int) -> int:
     else:
         return n + (alignment - n % alignment)
 
+def bool2int(b):
+    if b:
+        return 1
+    else:
+        return 0
+    
 def label_name(n: str) -> str:
     if platform == "darwin":
         return '_' + n
@@ -305,7 +405,11 @@ def trace(msg):
         print(msg, file=sys.stderr)
 
 def is_python_extension(filename):
-    return filename.split(".")[1] == "py"
+    s = filename.split(".")
+    if len(s) > 1:
+        return s[1] == "py"
+    else:
+        return False
 
 # Given the `ast` output of a pass and a test program (root) name,
 # runs the interpreter on the program and compares the output to the
@@ -356,50 +460,64 @@ def compile_and_test(compiler, compiler_name, type_check_P, interp_P, interp_C,
         successful_passes += \
             test_pass('shrink', interp_P, program_root, program, compiler_name)
         
+    if hasattr(compiler, 'expose_allocation'):
+        trace('\n**********\n expose allocation \n**********\n')
+        type_check_P(program)
+        program = compiler.expose_allocation(program)
+        trace(program)
+        total_passes += 1
+        successful_passes += \
+            test_pass('expose allocation', interp_P, program_root, program,
+                      compiler_name)
+        
     trace('\n**********\n remove \n**********\n')
-    rco = compiler.remove_complex_operands(program)
-    trace(rco)
+    program = compiler.remove_complex_operands(program)
+    trace(program)
     trace("")
     total_passes += 1
     successful_passes += \
-        test_pass('remove complex operands', interp_P, program_root, rco,
+        test_pass('remove complex operands', interp_P, program_root, program,
                   compiler_name)
     
     if hasattr(compiler, 'explicate_control'):
         trace('\n**********\n explicate \n**********\n')
-        rco = compiler.explicate_control(rco)
-        trace(rco)
+        program = compiler.explicate_control(program)
+        trace(program)
         total_passes += 1
         successful_passes += \
-            test_pass('explicate control', interp_C, program_root, rco,
+            test_pass('explicate control', interp_C, program_root, program,
                       compiler_name)
         
     trace('\n**********\n select \n**********\n')    
-    pseudo_x86 = compiler.select_instructions(rco)
+    pseudo_x86 = compiler.select_instructions(program)
     trace(pseudo_x86)
     trace("")
     total_passes += 1
-    successful_passes += \
-        test_pass('select instructions', interp_x86, program_root, pseudo_x86,
-                  compiler_name)
+    test_x86 = False
+    if test_x86:
+        successful_passes += \
+            test_pass('select instructions', interp_x86, program_root, pseudo_x86,
+                      compiler_name)
     
     trace('\n**********\n assign \n**********\n')    
     almost_x86 = compiler.assign_homes(pseudo_x86)
     trace(almost_x86)
     trace("")
     total_passes += 1
-    successful_passes += \
-        test_pass('assign homes', interp_x86, program_root, almost_x86,
-                  compiler_name)
+    if test_x86:    
+        successful_passes += \
+            test_pass('assign homes', interp_x86, program_root, almost_x86,
+                      compiler_name)
     
     trace('\n**********\n patch \n**********\n')        
     x86 = compiler.patch_instructions(almost_x86)
     trace(x86)
     trace("")
     total_passes += 1
-    successful_passes += \
-        test_pass('patch instructions', interp_x86, program_root, x86,
-                  compiler_name)
+    if test_x86:    
+        successful_passes += \
+            test_pass('patch instructions', interp_x86, program_root, x86,
+                      compiler_name)
 
     trace('\n**********\n prelude and conclusion \n**********\n')
     x86 = compiler.prelude_and_conclusion(x86)
@@ -463,16 +581,16 @@ def compile(compiler, compiler_name, type_check_P, program_filename):
         trace_ast_and_concrete(program)
         
     trace('\n**********\n remove \n**********\n')
-    rco = compiler.remove_complex_operands(program)
-    trace_ast_and_concrete(rco)
+    program = compiler.remove_complex_operands(program)
+    trace_ast_and_concrete(program)
     
     if hasattr(compiler, 'explicate_control'):
         trace('\n**********\n explicate \n**********\n')
-        rco = compiler.explicate_control(rco)
-        trace_ast_and_concrete(rco)
+        program = compiler.explicate_control(program)
+        trace_ast_and_concrete(program)
         
     trace('\n**********\n select \n**********\n')    
-    pseudo_x86 = compiler.select_instructions(rco)
+    pseudo_x86 = compiler.select_instructions(program)
     trace_ast_and_concrete(pseudo_x86)
     
     trace('\n**********\n assign \n**********\n')    

@@ -4,7 +4,7 @@
 from lark import Tree
 from ast import Name, Constant
 from x86_ast import *
-from utils import label_name
+from utils import label_name, GlobalValue
 
 def convert_int(value):
     if value >= 0:
@@ -24,6 +24,8 @@ def convert_arg(arg):
             return Tree('mem_a', [convert_int(offset), reg])
         case ByteReg(id):
             return Tree('reg_a', [id])
+        case GlobalValue(id):
+            return Tree('global_val_a', [id, 'rip'])
         case _:
             raise Exception('convert_arg: unhandled ' + repr(arg))
 

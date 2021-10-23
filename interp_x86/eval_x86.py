@@ -275,10 +275,12 @@ class X86Emulator:
                         raise Exception('jump to invalid target ' + target)
                     return # after jumping, toss continuation
 
-            elif instr.data in ['sete', 'setl', 'setle', 'setg', 'setge']:
+            elif instr.data in ['sete', 'setne', 'setl', 'setle', 'setg', 'setge']:
                 a1 = instr.children[0]
 
                 if instr.data == 'sete' and self.registers['EFLAGS'] == 'e':
+                    self.store_arg(a1, 1)
+                elif instr.data == 'setne' and self.registers['EFLAGS'] != 'e':
                     self.store_arg(a1, 1)
                 elif instr.data == 'setl' and self.registers['EFLAGS'] == 'l':
                     self.store_arg(a1, 1)
