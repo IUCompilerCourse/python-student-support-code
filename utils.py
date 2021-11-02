@@ -1,6 +1,7 @@
 import os
 import sys
 from sys import platform
+import ast
 from ast import *
 
 ################################################################################
@@ -8,6 +9,8 @@ from ast import *
 ################################################################################
 
 indent_amount = 0
+
+sed = 'sed'
 
 def indent_stmt():
     return " " * indent_amount
@@ -232,6 +235,29 @@ def repr_Subscript(self):
 Subscript.__repr__ = repr_Subscript
 
 
+def str_FunctionDef(self):
+    if isinstance(self.args, ast.arguments):
+        params = ','.join([a.arg + ':' + str(a.annotation) for a in self.args.args])
+    else:
+        params = ','.join([x + ':' + str(t) for (x,t) in self.args])
+    indent()
+    if isinstance(self.body, list):
+        body = ''.join([str(s) for s in self.body])
+    elif isinstance(self.body, dict):
+        body = ''
+        for (l,ss) in self.body.items():
+            body += l + ':\n'
+            indent()
+            body += ''.join([str(s) for s in ss])
+            dedent()
+    dedent()
+    return indent_stmt() + 'def ' + self.name + '(' + params + '):\n' + body
+def repr_FunctionDef(self):
+    return 'FunctionDef(' + self.name + ',' + repr(self.args) + ',' + \
+        repr(self.body) + ')'
+FunctionDef.__str__ = str_FunctionDef
+FunctionDef.__repr__ = repr_FunctionDef
+
 ################################################################################
 # __eq__ and __hash__ for classes in the ast module
 ################################################################################
@@ -300,6 +326,17 @@ class CProgram:
 
     def __repr__(self):
         return 'CProgram(' + repr(self.body) + ')'
+
+class CProgramDefs:
+    __match_args__ = ("defs",)
+    def __init__(self, defs):
+        self.defs = defs
+
+    def __str__(self):
+        return '\n'.join([str(d) for d in self.defs]) + '\n'
+
+    def __repr__(self):
+        return 'CProgramDefs(' + repr(self.defs) + ')'
     
 class Goto(stmt):
     __match_args__ = ("label",)
@@ -352,16 +389,54 @@ class GlobalValue(expr):
     def __repr__(self):
         return 'GlobalValue(' + repr(self.name) + ')'
 
+class Bottom:
+    def __eq__(self, other):
+        return isinstance(other, Bottom)
+
 class TupleType:
     __match_args__ = ("types",)
     def __init__(self, types):
         self.types = types
     def __str__(self):
-        return 'tuple' + str(self.types)
+        return '(' + ','.join([str(p) for p in self.types]) + ')'
     def __repr__(self):
         return 'TupleType(' + repr(self.types) + ')'
+    def __eq__(self, other):
+        if not isinstance(other, TupleType):
+            return False
+        result = True
+        for (t1, t2) in zip(self.types, other.types):
+            result = result and t1 == t2
+        return result
+
+class FunctionType:
+    __match_args__ = ("param_types", "ret_type")
+    def __init__(self, param_types, ret_type):
+        self.param_types = param_types
+        self.ret_type = ret_type
+    def __str__(self):
+        return '(' + ','.join([str(p) for p in self.param_types]) + ')' \
+            + ' -> ' + str(self.ret_type)
+    def __repr__(self):
+        return 'FunctionType(' + repr(self.param_types) + ',' \
+            + repr(self.ret_type) + ')'
+    def __eq__(self, other):
+        if not isinstance(other, FunctionType):
+            return False
+        result = True
+        for (t1, t2) in zip(self.param_types, other.param_types):
+            result = result and t1 == t2
+        return result and self.ret_type == other.ret_type
     
-        
+class FunRef:
+    __match_args__ = ("name",)
+    def __init__(self, name):
+        self.name = name
+    def __str__(self):
+        return self.name + '(%rip)'
+    def __repr__(self):
+        return 'FunRef(' + self.name + ')'
+    
 ################################################################################
 # Miscellaneous Auxiliary Functions
 ################################################################################
@@ -425,8 +500,8 @@ def test_pass(passname, interp, program_root, ast,
     interp(ast)
     sys.stdin = stdin
     sys.stdout = stdout
-    os.system("sed -i '$a\\' " + program_root + '.out')
-    os.system("sed -i '$a\\' " + program_root + '.golden')
+    os.system(sed + " -i '$a\\' " + program_root + '.out')
+    os.system(sed + " -i '$a\\' " + program_root + '.golden')
     result = os.system('diff ' + output_file + ' ' + program_root + '.golden')
     if result == 0:
         trace('compiler ' + compiler_name + ' success on pass ' + passname \
@@ -438,7 +513,9 @@ def test_pass(passname, interp, program_root, ast,
         return 0
         
 
-def compile_and_test(compiler, compiler_name, type_check_P, interp_P, interp_C,
+def compile_and_test(compiler, compiler_name,
+                     type_check_P, interp_P, 
+                     type_check_C, interp_C,
                      program_filename):
     total_passes = 0
     successful_passes = 0
@@ -448,7 +525,11 @@ def compile_and_test(compiler, compiler_name, type_check_P, interp_P, interp_C,
     with open(program_filename) as source:
         program = parse(source.read())
 
-    trace('\n**********\n type check \n**********\n')        
+    trace('\n***************\n source program \n***************\n')
+    trace(program)
+    trace('')
+
+    trace('\n***************\n type check     \n***************\n')        
     type_check_P(program)
         
     if hasattr(compiler, 'shrink'):
@@ -459,6 +540,26 @@ def compile_and_test(compiler, compiler_name, type_check_P, interp_P, interp_C,
         total_passes += 1
         successful_passes += \
             test_pass('shrink', interp_P, program_root, program, compiler_name)
+
+    if hasattr(compiler, 'reveal_functions'):
+        trace('\n**********\n reveal functions \n**********\n')
+        type_check_P(program)
+        program = compiler.reveal_functions(program)
+        trace(program)
+        total_passes += 1
+        successful_passes += \
+            test_pass('reveal functions', interp_P, program_root, program,
+                      compiler_name)
+
+    if hasattr(compiler, 'limit_functions'):
+        trace('\n**********\n limit functions \n**********\n')
+        type_check_P(program)
+        program = compiler.limit_functions(program)
+        trace(program)
+        total_passes += 1
+        successful_passes += \
+            test_pass('limit functions', interp_P, program_root, program,
+                      compiler_name)
         
     if hasattr(compiler, 'expose_allocation'):
         trace('\n**********\n expose allocation \n**********\n')
@@ -470,7 +571,7 @@ def compile_and_test(compiler, compiler_name, type_check_P, interp_P, interp_C,
             test_pass('expose allocation', interp_P, program_root, program,
                       compiler_name)
         
-    trace('\n**********\n remove \n**********\n')
+    trace('\n**********\n remove complex operands \n**********\n')
     program = compiler.remove_complex_operands(program)
     trace(program)
     trace("")
@@ -480,13 +581,17 @@ def compile_and_test(compiler, compiler_name, type_check_P, interp_P, interp_C,
                   compiler_name)
     
     if hasattr(compiler, 'explicate_control'):
-        trace('\n**********\n explicate \n**********\n')
+        trace('\n**********\n explicate control \n**********\n')
         program = compiler.explicate_control(program)
         trace(program)
         total_passes += 1
         successful_passes += \
             test_pass('explicate control', interp_C, program_root, program,
                       compiler_name)
+    
+    if type_check_C:
+        trace('\n**********\n type check C \n**********\n')
+        type_check_C(program)
         
     trace('\n**********\n select \n**********\n')    
     pseudo_x86 = compiler.select_instructions(program)
@@ -546,8 +651,8 @@ def compile_and_test(compiler, compiler_name, type_check_P, interp_P, interp_C,
         output_file = program_root + '.out'
         os.system('./a.out < ' + input_file + ' > ' + output_file)
 
-    os.system("sed -i '$a\\' " + program_root + '.out')
-    os.system("sed -i '$a\\' " + program_root + '.golden')
+    os.system(sed + " -i '$a\\' " + program_root + '.out')
+    os.system(sed = " -i '$a\\' " + program_root + '.golden')
     result = os.system('diff ' + program_root + '.out ' \
                        + program_root + '.golden')
     if result == 0:
@@ -566,7 +671,8 @@ def trace_ast_and_concrete(ast):
     trace(repr(ast))    
     
 # This function compiles the program without any testing
-def compile(compiler, compiler_name, type_check_P, program_filename):
+def compile(compiler, compiler_name, type_check_P, type_check_C,
+            program_filename):
     program_root = program_filename.split('.')[0]
     with open(program_filename) as source:
         program = parse(source.read())
@@ -579,6 +685,17 @@ def compile(compiler, compiler_name, type_check_P, program_filename):
         trace('\n**********\n shrink \n**********\n')
         program = compiler.shrink(program)
         trace_ast_and_concrete(program)
+
+    if hasattr(compiler, 'reveal_functions'):
+        trace('\n**********\n reveal functions \n**********\n')
+        program = compiler.reveal_functions(program)
+        trace_ast_and_concrete(program)
+        
+    if hasattr(compiler, 'expose_allocation'):
+        trace('\n**********\n expose allocation \n**********\n')
+        type_check_P(program)
+        program = compiler.expose_allocation(program)
+        trace_ast_and_concrete(program)
         
     trace('\n**********\n remove \n**********\n')
     program = compiler.remove_complex_operands(program)
@@ -588,6 +705,9 @@ def compile(compiler, compiler_name, type_check_P, program_filename):
         trace('\n**********\n explicate \n**********\n')
         program = compiler.explicate_control(program)
         trace_ast_and_concrete(program)
+
+    if type_check_C:
+        type_check_C(program)
         
     trace('\n**********\n select \n**********\n')    
     pseudo_x86 = compiler.select_instructions(program)
@@ -617,18 +737,19 @@ def compile(compiler, compiler_name, type_check_P, program_filename):
 # checking that the resulting programs produce output that matches the
 # golden file.
 def run_one_test(test, lang, compiler, compiler_name,
-                 type_check_P, interp_P, interp_C):
+                 type_check_P, interp_P, type_check_C, interp_C):
     test_root = test.split('.')[0]
     test_name = test_root.split('/')[-1]
     return compile_and_test(compiler, compiler_name, type_check_P,
-                            interp_P, interp_C, test)
+                            interp_P, type_check_C, interp_C, test)
 
 # Given the name of a language, a compiler, the compiler's name, a
 # type checker and interpreter for the language, and an interpreter
 # for the C intermediate language, test the compiler on all the tests
 # in the directory of for the given language, i.e., all the
 # python files in ./tests/<language>.
-def run_tests(lang, compiler, compiler_name, type_check_P, interp_P, interp_C):
+def run_tests(lang, compiler, compiler_name, type_check_P, interp_P, 
+              type_check_C, interp_C):
     # Collect all the test programs for this language.
     homedir = os.getcwd()
     directory = homedir + '/tests/' + lang + '/'
@@ -647,7 +768,7 @@ def run_tests(lang, compiler, compiler_name, type_check_P, interp_P, interp_C):
     for test in tests:
         (succ_passes, tot_passes, succ_test) = \
             run_one_test(test, lang, compiler, compiler_name,
-                     type_check_P, interp_P, interp_C)
+                         type_check_P, interp_P, type_check_C, interp_C)
         successful_passes += succ_passes
         total_passes += tot_passes
         successful_tests += succ_test
