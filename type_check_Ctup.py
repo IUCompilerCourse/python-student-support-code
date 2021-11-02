@@ -1,5 +1,5 @@
 from ast import *
-from type_check_Cif import check_type_equal
+from type_check_Cif import check_type_equal, Bottom
 from type_check_Cwhile import TypeCheckCwhile
 from utils import Allocate, Begin, GlobalValue, Collect, TupleType
 
@@ -19,6 +19,8 @@ class TypeCheckCtup(TypeCheckCwhile):
           match tup_t:
             case TupleType(ts):
               return ts[index]
+            case Bottom():
+              return Bottom()
             case _:
               raise Exception('error, expected a tuple, not ' + repr(tup_t))
         case _:
@@ -34,6 +36,8 @@ class TypeCheckCtup(TypeCheckCwhile):
         match tup_t:
           case TupleType(ts):
             check_type_equal(ts[index], value_t, s)
+          case Bottom():
+              pass
           case _:
             raise Exception('error, expected a tuple, not ' + repr(tup_t))
       case _:
