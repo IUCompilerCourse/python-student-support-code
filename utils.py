@@ -652,7 +652,7 @@ def compile_and_test(compiler, compiler_name,
         os.system('./a.out < ' + input_file + ' > ' + output_file)
 
     os.system(sed + " -i '$a\\' " + program_root + '.out')
-    os.system(sed = " -i '$a\\' " + program_root + '.golden')
+    os.system(sed + " -i '$a\\' " + program_root + '.golden')
     result = os.system('diff ' + program_root + '.out ' \
                        + program_root + '.golden')
     if result == 0:
