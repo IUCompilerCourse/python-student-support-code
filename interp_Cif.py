@@ -15,10 +15,10 @@ class InterpCif(InterpLif):
       case _:
         return super().interp_stmts(ss, env)
     
-  def interp_C(self, p):
+  def interp(self, p):
     match p:
       case CProgram(blocks):
         env = {}
         self.blocks = blocks
-        self.interp_stmts(cfg[label_name('start')], env)
+        self.interp_stmts(blocks[label_name('start')], env)
     
