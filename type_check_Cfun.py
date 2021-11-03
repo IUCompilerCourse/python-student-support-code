@@ -5,27 +5,27 @@ import copy
 
 class TypeCheckCfun(TypeCheckCtup):
     
-  def parse_type_annot(self, annot):
-      match annot:
-        case Name(id):
-          if id == 'int':
-            return int
-          elif id == 'bool':
-            return bool
-          else:
-            raise Exception('parse_type_annot: unexpected ' + repr(annot))
-        case TupleType(ts):
-          return TupleType([self.parse_type_annot(t) for t in ts])
-        case FunctionType(ps, rt):
-          return FunctionType([self.parse_type_annot(t) for t in ps],
-                              self.parse_type_annot(rt))
-        case Subscript(Name('Callable'), Tuple([ps, rt])):
-          return FunctionType([self.parse_type_annot(t) for t in ps.elts],
-                              self.parse_type_annot(rt))
-        case Subscript(Name('tuple'), Tuple(ts)):
-          return TupleType([self.parse_type_annot(t) for t in ts])
-        case _:
-            raise Exception('parse_type_annot: unexpected ' + repr(annot))
+  # def parse_type_annot(self, annot):
+  #     match annot:
+  #       case Name(id):
+  #         if id == 'int':
+  #           return int
+  #         elif id == 'bool':
+  #           return bool
+  #         else:
+  #           raise Exception('parse_type_annot: unexpected ' + repr(annot))
+  #       case TupleType(ts):
+  #         return TupleType([self.parse_type_annot(t) for t in ts])
+  #       case FunctionType(ps, rt):
+  #         return FunctionType([self.parse_type_annot(t) for t in ps],
+  #                             self.parse_type_annot(rt))
+  #       case Subscript(Name('Callable'), Tuple([ps, rt])):
+  #         return FunctionType([self.parse_type_annot(t) for t in ps.elts],
+  #                             self.parse_type_annot(rt))
+  #       case Subscript(Name('tuple'), Tuple(ts)):
+  #         return TupleType([self.parse_type_annot(t) for t in ts])
+  #       case _:
+  #           raise Exception('parse_type_annot: unexpected ' + repr(annot))
     
   def type_check_exp(self, e, env):
     match e:
@@ -53,8 +53,8 @@ class TypeCheckCfun(TypeCheckCtup):
     match d:
       case FunctionDef(name, params, blocks, dl, returns, comment):
         new_env = {x: t for (x,t) in env.items()}
-        for p in params.args:
-            new_env[p.arg] = self.parse_type_annot(p.annotation)
+        for (x,t) in params:
+            new_env[x] = t
         while True:
             old_env = copy.deepcopy(new_env)
             for (l,ss) in blocks.items():
@@ -66,7 +66,7 @@ class TypeCheckCfun(TypeCheckCtup):
         # trace('type_check_Cfun var_types for ' + name)
         # trace(d.var_types)
       case _:
-        raise Exception('type_check_def: unexpected ' + repr(ss[0]))
+        raise Exception('type_check_def: unexpected ' + repr(d))
 
   def type_check_stmts(self, ss, env):
     if len(ss) == 0:
@@ -84,10 +84,8 @@ class TypeCheckCfun(TypeCheckCtup):
         for d in defs:
             match d:
               case FunctionDef(name, params, bod, dl, returns, comment):
-                params_t = [self. parse_type_annot(p.annotation) \
-                            for p in params.args]
-                env[name] = FunctionType(params_t,
-                                         self.parse_type_annot(returns))
+                params_t = [t for (x,t) in params]
+                env[name] = FunctionType(params_t, returns)
         for d in defs:
             self.type_check_def(d, env)
       case _:

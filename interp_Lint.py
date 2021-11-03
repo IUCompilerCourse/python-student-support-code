@@ -75,4 +75,4 @@ if __name__ == "__main__":
   ast1_1 = BinOp(read, Add(), neg_eight)
   pr = Expr(Call(Name('print'), [ast1_1]))
   p = Module([pr])
-  interp_Lint(p)
+  interp(p)

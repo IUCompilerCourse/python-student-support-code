@@ -64,7 +64,8 @@ class TypeCheckCif:
         return int
       case Let(Name(x), rhs, body):
         t = self.type_check_exp(rhs, env)
-        new_env = dict(env); new_env[x] = t
+        new_env = dict(env)
+        new_env[x] = t
         return self.type_check_exp(body, new_env)
       case _:
         raise Exception('error in type_check_exp, unexpected ' + repr(e))
@@ -91,7 +92,7 @@ class TypeCheckCif:
       case Goto(label):
         pass
       case Return(value):
-        value_t = self.type_check_exp(value, env);
+        value_t = self.type_check_exp(value, env)
       case _:
         raise Exception('error in type_check_stmt, unexpected' + repr(s))
     
@@ -108,7 +109,7 @@ class TypeCheckCif:
               for (l, ss) in body.items():
                   self.type_check_stmts(ss, env)
               if env == old_env:
-                  break;
+                  break
           p.var_types = env
       case _:
         raise Exception('error in type_check, unexpected ' + repr(p))

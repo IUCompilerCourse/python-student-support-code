@@ -8,7 +8,7 @@ class TypeCheckCtup(TypeCheckCwhile):
   def type_check_exp(self, e, env):
     match e:
         case Allocate(length, typ):
-          return typ;
+          return typ
         case Begin(ss, e):
           self.type_check_stmts(ss, env)
           return self.type_check_exp(e, env)
