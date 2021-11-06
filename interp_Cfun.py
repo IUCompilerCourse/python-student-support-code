@@ -38,8 +38,8 @@ class InterpCfun(InterpCtup):
     if len(ss) == 0:
       raise Exception('interp_stmts function ended without return')
     match ss[0]:
-      case Return(value):
-        return self.interp_exp(value, env)
+      case TailCall(func, args):
+        return self.interp_exp(Call(func, args), env)
       case _:
         return super().interp_stmts(ss, env)
     
@@ -50,8 +50,7 @@ class InterpCfun(InterpCtup):
         for d in defs:
             match d:
               case FunctionDef(name, params, blocks, dl, returns, comment):
-                env[name] = Function(name, [p.arg for p in params.args],
-                                     blocks, env)
+                env[name] = Function(name, [x for (x,t) in params], blocks, env)
         self.blocks = {}
         self.apply_fun(env['main'], [], None)
       case _:

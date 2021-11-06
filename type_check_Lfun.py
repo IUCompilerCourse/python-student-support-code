@@ -1,3 +1,4 @@
+import ast
 from ast import *
 from type_check_Lvar import check_type_equal
 from type_check_Ltup import TypeCheckLtup
@@ -25,6 +26,8 @@ class TypeCheckLfun(TypeCheckLtup):
                               self.parse_type_annot(rt))
         case Subscript(Name('tuple'), Tuple(ts)):
           return TupleType([self.parse_type_annot(t) for t in ts])
+        case t if t == int or t == bool:
+          return annot
         case _:
             raise Exception('parse_type_annot: unexpected ' + repr(annot))
     
@@ -54,10 +57,18 @@ class TypeCheckLfun(TypeCheckLtup):
     match ss[0]:
       case FunctionDef(name, params, body, dl, returns, comment):
         new_env = {x: t for (x,t) in env.items()}
-        for p in params.args:
-            new_env[p.arg] = self.parse_type_annot(p.annotation)
+        if isinstance(params, ast.arguments):
+            new_params = [(p.arg, self.parse_type_annot(p.annotation)) for p in params.args]
+            ss[0].args = new_params
+            new_returns = self.parse_type_annot(returns)
+            ss[0].returns = new_returns
+        else:
+            new_params = params
+            new_returns = returns
+        for (x,t) in new_params:
+            new_env[x] = t
         rt = self.type_check_stmts(body, new_env)
-        check_type_equal(self.parse_type_annot(returns), rt, ss[0])
+        check_type_equal(new_returns, rt, ss[0])
         return self.type_check_stmts(ss[1:], env)
       case Return(value):
         return self.type_check_exp(value, env)
@@ -71,10 +82,12 @@ class TypeCheckLfun(TypeCheckLtup):
         for s in body:
             match s:
               case FunctionDef(name, params, bod, dl, returns, comment):
-                params_t = [self. parse_type_annot(p.annotation) \
-                            for p in params.args]
-                env[name] = FunctionType(params_t,
-                                         self.parse_type_annot(returns))
+                if isinstance(params, ast.arguments):
+                    params_t = [self.parse_type_annot(p.annotation) \
+                                for p in params.args]
+                else:
+                    params_t = [t for (x,t) in params]
+                env[name] = FunctionType(params_t, self.parse_type_annot(returns))
         self.type_check_stmts(body, env)
       case _:
         raise Exception('type_check: unexpected ' + repr(p))

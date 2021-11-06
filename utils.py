@@ -10,7 +10,7 @@ from ast import *
 
 indent_amount = 0
 
-sed = 'sed'
+sed = 'gsed'
 
 def indent_stmt():
     return " " * indent_amount
@@ -436,6 +436,17 @@ class FunRef:
         return self.name + '(%rip)'
     def __repr__(self):
         return 'FunRef(' + self.name + ')'
+
+class TailCall:
+    __match_args__ = ("func","args")
+    def __init__(self, func, args):
+        self.func = func
+        self.args = args
+    def __str__(self):
+        return str(self.func) + '(' + ','.join([str(e) for e in self.args]) + ')'
+    def __repr__(self):
+        return 'TailCall(' + repr(self.func) + ',' + repr(self.args) + ')'
+    
     
 ################################################################################
 # Miscellaneous Auxiliary Functions

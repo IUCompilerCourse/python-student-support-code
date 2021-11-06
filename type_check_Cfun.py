@@ -68,14 +68,14 @@ class TypeCheckCfun(TypeCheckCtup):
       case _:
         raise Exception('type_check_def: unexpected ' + repr(d))
 
-  def type_check_stmts(self, ss, env):
-    if len(ss) == 0:
-      return
-    match ss[0]:
+  def type_check_stmt(self, s, env):
+    match s:
       case Return(value):
-        return self.type_check_exp(value, env)
+        self.type_check_exp(value, env)
+      case TailCall(func, args):
+        self.type_check_exp(Call(func, args), env)
       case _:
-        return super().type_check_stmts(ss, env)
+        super().type_check_stmt(s, env)
     
   def type_check(self, p):
     match p:

@@ -70,6 +70,10 @@ class TypeCheckCif:
       case _:
         raise Exception('error in type_check_exp, unexpected ' + repr(e))
 
+  def type_check_stmts(self, ss, env):
+      for s in ss:
+          self.type_check_stmt(s, env)
+      
   def type_check_stmt(self, s, env):
     match s:      
       case Assign([lhs], value):
@@ -96,10 +100,6 @@ class TypeCheckCif:
       case _:
         raise Exception('error in type_check_stmt, unexpected' + repr(s))
     
-  def type_check_stmts(self, ss, env):
-    for s in ss:
-        self.type_check_stmt(s, env)
-
   def type_check(self, p):
     match p:
       case CProgram(body):

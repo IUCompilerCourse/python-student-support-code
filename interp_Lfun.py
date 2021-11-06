@@ -53,8 +53,11 @@ class InterpLfun(InterpLtup):
         for d in defs:
             match d:
               case FunctionDef(name, params, bod, dl, returns, comment):
-                env[name] = Function(name, [p.arg for p in params.args],
-                                     bod, env)
+                if isinstance(params, ast.arguments):
+                    ps = [p.arg for p in params.args]
+                else:
+                    ps = [x for (x,t) in params]
+                env[name] = Function(name, ps, bod, env)
         self.apply_fun(env['main'], [], None)
       case _:
         raise Exception('interp: unexpected ' + repr(p))

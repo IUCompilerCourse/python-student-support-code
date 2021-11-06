@@ -11,21 +11,31 @@ class X86Program:
             for (l,ss) in self.body.items():
                 if l == label_name('main'):
                     result += '\t.globl ' + label_name('main') + '\n'
+                result += '\t.align 16\n'
                 result += l + ':\n'
                 indent()
-                result += '\n'.join([str(s) for s in ss]) + '\n\n'
+                result += ''.join([str(s) for s in ss]) + '\n'
                 dedent()
         else:
             result += '\t.globl ' + label_name('main') + '\n' + \
                       label_name('main') + ':\n'
             indent()
-            result += '\n'.join([str(s) for s in self.body])
+            result += ''.join([str(s) for s in self.body])
             dedent()
         result += '\n'
         return result
     def __repr__(self):
         return 'X86Program(' + repr(self.body) + ')'
-                
+
+class X86ProgramDefs:
+    __match_args__ = ("defs",)
+    def __init__(self, defs):
+        self.defs = defs
+    def __str__(self):
+        return '\n'.join([str(d) for d in self.defs])
+    def __repr__(self):
+        return 'X86ProgramDefs(' + repr(self.defs) + ')'
+    
 class instr: ...
 class arg: ...
 class location(arg): ...
@@ -43,7 +53,7 @@ class Instr(instr):
     def target(self):
         return self.args[-1]
     def __str__(self):
-        return indent_stmt() + self.instr + ' ' + ', '.join(str(a) for a in self.args)
+        return indent_stmt() + self.instr + ' ' + ', '.join(str(a) for a in self.args) + '\n'
     def __repr__(self):
         return 'Instr(' + repr(self.instr) + ', ' + repr(self.args) + ')'
     
@@ -53,9 +63,19 @@ class Callq(instr):
         self.func = func
         self.num_args = num_args
     def __str__(self):
-        return indent_stmt() + 'callq' + ' ' + self.func
+        return indent_stmt() + 'callq' + ' ' + self.func + '\n'
     def __repr__(self):
         return 'Callq(' + repr(self.func) + ', ' + repr(self.num_args) + ')'
+
+class IndirectCallq(instr):
+    __match_args__ = ("func", "num_args")
+    def __init__(self, func, num_args):
+        self.func = func
+        self.num_args = num_args
+    def __str__(self):
+        return indent_stmt() + 'callq' + ' *' + str(self.func) + '\n'
+    def __repr__(self):
+        return 'IndirectCallq(' + repr(self.func) + ', ' + repr(self.num_args) + ')'
     
 class JumpIf(instr):
     cc: str
@@ -66,7 +86,7 @@ class JumpIf(instr):
         self.cc = cc
         self.label = label
     def __str__(self):
-        return indent_stmt() + 'j' + self.cc + ' ' + self.label
+        return indent_stmt() + 'j' + self.cc + ' ' + self.label + '\n'
     def __repr__(self):
         return 'JumpIf(' + repr(self.cc) + ', ' + repr(self.label) + ')'
 
@@ -77,10 +97,29 @@ class Jump(instr):
     def __init__(self, label):
         self.label = label
     def __str__(self):
-        return indent_stmt() + 'jmp ' + self.label
+        return indent_stmt() + 'jmp ' + self.label + '\n'
     def __repr__(self):
         return 'Jump(' + repr(self.label) + ')'
 
+class IndirectJump(instr):
+    __match_args__ = ("target",)
+    def __init__(self, target):
+        self.target = target
+    def __str__(self):
+        return indent_stmt() + 'jmp *' + str(self.target) + '\n'
+    def __repr__(self):
+        return 'IndirectJump(' + repr(self.target) + ')'
+    
+class TailJump(instr):
+    __match_args__ = ("func","arity")
+    def __init__(self, func, arity):
+        self.func = func
+        self.arity = arity
+    def __str__(self):
+        return indent_stmt() + 'tailjmp ' + str(self.func) + '\n'
+    def __repr__(self):
+        return 'TailJump(' + repr(self.func) + ',' + repr(self.arity) + ')'
+    
 class Variable(location):
     __match_args__ = ("id",)
     def __init__(self, id):
