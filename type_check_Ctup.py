@@ -9,9 +9,6 @@ class TypeCheckCtup(TypeCheckCwhile):
     match e:
         case Allocate(length, typ):
           return typ
-        case Begin(ss, e):
-          self.type_check_stmts(ss, env)
-          return self.type_check_exp(e, env)
         case GlobalValue(name):
           return int
         case Subscript(tup, Constant(index), Load()):
