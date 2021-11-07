@@ -19,6 +19,9 @@ class InterpLtup(InterpLwhile):
         t = self.interp_exp(tup, env)
         n = self.interp_exp(index, env)
         return t[n]
+      case Call(Name('len'), [tup]):
+        t = self.interp_exp(tup, env)
+        return len(t)
       case Allocate(length, typ):
         array = [None] * length
         return array

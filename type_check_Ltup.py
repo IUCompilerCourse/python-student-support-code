@@ -26,6 +26,15 @@ class TypeCheckLtup(TypeCheckLwhile):
             return ts[index]
           case _:
             raise Exception('error: expected a tuple, not ' + repr(tup_ty))
+      case Call(Name('len'), [tup]):
+        tup_t = self.type_check_exp(tup, env)
+        match tup_t:
+          case TupleType(ts):
+            return int
+          case Bottom():
+            return Bottom()
+          case _:
+            raise Exception('error, expected a tuple, not ' + repr(tup_t))
       case _:
         return super().type_check_exp(e, env)
 
