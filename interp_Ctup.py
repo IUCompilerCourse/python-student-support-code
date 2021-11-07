@@ -20,6 +20,9 @@ class InterpCtup(InterpCif):
         return self.interp_exp(e, env)
       case GlobalValue(name):
         return 0 # bogus
+      case Call(Name('len'), [tup]):
+        t = self.interp_exp(tup, env)
+        return len(t)
       case _:
         return super().interp_exp(e, env)
 
