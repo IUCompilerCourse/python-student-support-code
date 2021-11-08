@@ -208,5 +208,5 @@ class Global(arg):
     def __str__(self):
         return str(self.name) + "(%rip)"
     def __repr__(self):
-        return 'GlobaleValue(' + repr(self.name) + ')'
+        return 'Global(' + repr(self.name) + ')'
     
