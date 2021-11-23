@@ -1,17 +1,29 @@
 from ast import *
-from type_check_Lvar import check_type_equal
 from type_check_Lwhile import TypeCheckLwhile
 from utils import *
 import typing
 
 class TypeCheckLtup(TypeCheckLwhile):
 
+  def check_type_equal(self, t1, t2, e):
+    match t1:
+      case TupleType(ts1):
+        match t2:
+          case TupleType(ts2):
+            for (ty1, ty2) in zip(ts1,ts2):
+              self.check_type_equal(ty1, ty2, e)
+          case _:
+            raise Exception('error: ' + repr(t1) + ' != ' + repr(t2) \
+                      + ' in ' + repr(e))
+      case _:
+        super().check_type_equal(t1, t2, e)
+  
   def type_check_exp(self, e, env):
     match e:
       case Compare(left, [cmp], [right]) if isinstance(cmp, Is):
         l = self.type_check_exp(left, env)
         r = self.type_check_exp(right, env)
-        check_type_equal(l, r, e)
+        self.check_type_equal(l, r, e)
         return bool
       case Tuple(es, Load()):
         ts = [self.type_check_exp(e, env) for e in es]
@@ -20,7 +32,7 @@ class TypeCheckLtup(TypeCheckLwhile):
       case Subscript(tup, Constant(index), Load()):
         tup_ty = self.type_check_exp(tup, env)
         index_ty = self.type_check_exp(Constant(index), env)
-        check_type_equal(index_ty, int, index)
+        self.check_type_equal(index_ty, int, index)
         match tup_ty:
           case TupleType(ts):
             return ts[index]

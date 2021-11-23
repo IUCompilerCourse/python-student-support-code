@@ -8,9 +8,9 @@ from ast import *
 # repr for classes in the ast module
 ################################################################################
 
-indent_amount = 0
+indent_amount = 2
 
-sed = 'gsed'
+sed = 'sed'
 
 def indent_stmt():
     return " " * indent_amount
@@ -46,6 +46,14 @@ Assign.__str__ = str_Assign
 def repr_Assign(self):
     return indent_stmt() + 'Assign(' + repr(self.targets) + ', ' + repr(self.value) + ')'
 Assign.__repr__ = repr_Assign
+
+def str_AnnAssign(self):
+    return indent_stmt() + str(self.target) + ' : ' + str(self.annotation) + ' = ' + str(self.value) + '\n'
+AnnAssign.__str__ = str_AnnAssign
+def repr_AnnAssign(self):
+    return indent_stmt() + 'AnnAssign(' + repr(self.target) + ', ' \
+        + repr(self.annotation) + ', ' + repr(self.value) + ')'
+AnnAssign.__repr__ = repr_AnnAssign
 
 def str_Return(self):
     return indent_stmt() + 'return ' + str(self.value) + '\n'
@@ -221,7 +229,7 @@ def repr_GtE(self):
 GtE.__repr__ = repr_GtE
 
 def str_Tuple(self):
-    return '(' + ','.join([str(e) for e in self.elts])  + ',)'
+    return '(' + ', '.join([str(e) for e in self.elts])  + ',)'
 Tuple.__str__ = str_Tuple
 def repr_Tuple(self):
     return 'Tuple(' + repr(self.elts) + ')'
@@ -231,15 +239,16 @@ def str_Subscript(self):
     return str(self.value) + '[' + str(self.slice) + ']'
 Subscript.__str__ = str_Subscript
 def repr_Subscript(self):
-    return 'Subscript(' + repr(self.value) + ', ' + repr(self.slice) + ')'
+    return 'Subscript(' + repr(self.value) + ', ' + repr(self.slice) \
+        + ', ' + repr(self.ctx) + ')'
 Subscript.__repr__ = repr_Subscript
 
 
 def str_FunctionDef(self):
     if isinstance(self.args, ast.arguments):
-        params = ','.join([a.arg + ':' + str(a.annotation) for a in self.args.args])
+        params = ', '.join([a.arg + ':' + str(a.annotation) for a in self.args.args])
     else:
-        params = ','.join([x + ':' + str(t) for (x,t) in self.args])
+        params = ', '.join([x + ':' + str(t) for (x,t) in self.args])
     indent()
     if isinstance(self.body, list):
         body = ''.join([str(s) for s in self.body])
@@ -251,12 +260,26 @@ def str_FunctionDef(self):
             body += ''.join([str(s) for s in ss])
             dedent()
     dedent()
-    return indent_stmt() + 'def ' + self.name + '(' + params + '):\n' + body
+    return indent_stmt() + 'def ' + self.name + '(' + params + ')' + \
+        ' -> ' + str(self.returns) + ':\n' + body + '\n'
 def repr_FunctionDef(self):
     return 'FunctionDef(' + self.name + ',' + repr(self.args) + ',' + \
         repr(self.body) + ')'
 FunctionDef.__str__ = str_FunctionDef
 FunctionDef.__repr__ = repr_FunctionDef
+
+def str_Lambda(self):
+    if isinstance(self.args, ast.arguments):
+        params = ', '.join([a.arg for a in self.args.args])
+    else:
+        params = ', '.join([x for x in self.args])
+    body = str(self.body)
+    return '(lambda ' + params + ': ' + body + ')'
+def repr_Lambda(self):
+    return 'Lambda(' + repr(self.args) + ',' + repr(self.body) + ')'
+Lambda.__str__ = str_Lambda
+Lambda.__repr__ = repr_Lambda
+    
 
 ################################################################################
 # __eq__ and __hash__ for classes in the ast module
@@ -357,6 +380,19 @@ class Allocate(expr):
     def __repr__(self):
         return 'Allocate(' + repr(self.length) + ',' + repr(self.ty) + ')'
 
+class AllocateClosure(expr):
+    __match_args__ = ("length", "ty", "arity")
+    def __init__(self, length, ty, arity):
+        self.length = length
+        self.ty = ty
+        self.arity = arity
+    def __str__(self):
+        return 'alloc_clos(' + str(self.length) + ',' + str(self.ty) \
+            + ','  + str(self.arity) + ')'
+    def __repr__(self):
+        return 'AllocateClosure(' + repr(self.length) + ',' + repr(self.ty) \
+            + ',' + repr(self.arity) + ')'
+    
 class Collect(stmt):
     __match_args__ = ("size",)
     def __init__(self, size):
@@ -392,13 +428,17 @@ class GlobalValue(expr):
 class Bottom:
     def __eq__(self, other):
         return isinstance(other, Bottom)
+    def __str__(self):
+        return 'bot'
+    def __repr__(self):
+        return 'Bottom()'
 
 class TupleType:
     __match_args__ = ("types",)
     def __init__(self, types):
         self.types = types
     def __str__(self):
-        return '(' + ','.join([str(p) for p in self.types]) + ')'
+        return 'tuple[' + ','.join([str(p) for p in self.types]) + ']'
     def __repr__(self):
         return 'TupleType(' + repr(self.types) + ')'
     def __eq__(self, other):
@@ -415,8 +455,8 @@ class FunctionType:
         self.param_types = param_types
         self.ret_type = ret_type
     def __str__(self):
-        return '(' + ','.join([str(p) for p in self.param_types]) + ')' \
-            + ' -> ' + str(self.ret_type)
+        return 'Callable[[' + ','.join([str(p) for p in self.param_types])+']'\
+            + ', ' + str(self.ret_type) + ']'
     def __repr__(self):
         return 'FunctionType(' + repr(self.param_types) + ',' \
             + repr(self.ret_type) + ')'
@@ -433,19 +473,41 @@ class FunRef:
     def __init__(self, name):
         self.name = name
     def __str__(self):
-        return self.name + '(%rip)'
+        return '{' + self.name + '}'
     def __repr__(self):
         return 'FunRef(' + self.name + ')'
 
+class FunRefArity:
+    __match_args__ = ("name","arity")
+    def __init__(self, name, arity):
+        self.name = name
+        self.arity = arity
+    def __str__(self):
+        return '{' + self.name + '}'
+    def __repr__(self):
+        return 'FunRefArity(' + self.name + ',' + repr(self.arity) + ')'
+    
 class TailCall:
     __match_args__ = ("func","args")
     def __init__(self, func, args):
         self.func = func
         self.args = args
     def __str__(self):
-        return str(self.func) + '(' + ','.join([str(e) for e in self.args]) + ')'
+        return str(self.func) + '(' + ', '.join([str(e) for e in self.args]) + ')'
     def __repr__(self):
         return 'TailCall(' + repr(self.func) + ',' + repr(self.args) + ')'
+
+# like a Tuple, but also stores the function's arity
+class Closure:
+    __match_args__ = ("arity", "args")
+    def __init__(self, arity, args):
+        self.arity = arity
+        self.args = args
+    def __str__(self):
+        return 'closure(' + ', '.join([str(e) for e in self.args]) + ')'
+    def __repr__(self):
+        return 'Closure(' + repr(self.arity) + ',' + repr(self.args) + ')'
+    
     
     
 ################################################################################
@@ -536,15 +598,14 @@ def compile_and_test(compiler, compiler_name,
     with open(program_filename) as source:
         program = parse(source.read())
 
-    trace('\n***************\n source program \n***************\n')
+    trace('\n# source program\n')
     trace(program)
     trace('')
 
-    trace('\n***************\n type check     \n***************\n')        
     type_check_P(program)
         
     if hasattr(compiler, 'shrink'):
-        trace('\n**********\n shrink \n**********\n')
+        trace('\n# shrink\n')
         program = compiler.shrink(program)
         trace(program)
         trace('')
@@ -552,8 +613,17 @@ def compile_and_test(compiler, compiler_name,
         successful_passes += \
             test_pass('shrink', interp_P, program_root, program, compiler_name)
 
+    if hasattr(compiler, 'uniquify'):
+        trace('\n# uniquify\n')
+        program = compiler.uniquify(program)
+        trace(program)
+        trace('')
+        total_passes += 1
+        successful_passes += \
+            test_pass('uniquify', interp_P, program_root, program, compiler_name)
+        
     if hasattr(compiler, 'reveal_functions'):
-        trace('\n**********\n reveal functions \n**********\n')
+        trace('\n# reveal functions\n')
         type_check_P(program)
         program = compiler.reveal_functions(program)
         trace(program)
@@ -562,8 +632,28 @@ def compile_and_test(compiler, compiler_name,
             test_pass('reveal functions', interp_P, program_root, program,
                       compiler_name)
 
+    if hasattr(compiler, 'convert_assignments'):
+        trace('\n# assignment conversion\n')
+        type_check_P(program)
+        program = compiler.convert_assignments(program)
+        trace(program)
+        total_passes += 1
+        successful_passes += \
+            test_pass('box free', interp_P, program_root, program,
+                      compiler_name)
+
+    if hasattr(compiler, 'convert_to_closures'):
+        trace('\n# closure conversion\n')
+        type_check_P(program)
+        program = compiler.convert_to_closures(program)
+        trace(program)
+        total_passes += 1
+        successful_passes += \
+            test_pass('closure conversion', interp_P, program_root, program,
+                      compiler_name)
+        
     if hasattr(compiler, 'limit_functions'):
-        trace('\n**********\n limit functions \n**********\n')
+        trace('\n# limit functions\n')
         type_check_P(program)
         program = compiler.limit_functions(program)
         trace(program)
@@ -573,7 +663,7 @@ def compile_and_test(compiler, compiler_name,
                       compiler_name)
         
     if hasattr(compiler, 'expose_allocation'):
-        trace('\n**********\n expose allocation \n**********\n')
+        trace('\n# expose allocation\n')
         type_check_P(program)
         program = compiler.expose_allocation(program)
         trace(program)
@@ -582,7 +672,7 @@ def compile_and_test(compiler, compiler_name,
             test_pass('expose allocation', interp_P, program_root, program,
                       compiler_name)
         
-    trace('\n**********\n remove complex operands \n**********\n')
+    trace('\n# remove complex operands\n')
     program = compiler.remove_complex_operands(program)
     trace(program)
     trace("")
@@ -592,7 +682,7 @@ def compile_and_test(compiler, compiler_name,
                   compiler_name)
     
     if hasattr(compiler, 'explicate_control'):
-        trace('\n**********\n explicate control \n**********\n')
+        trace('\n# explicate control\n')
         program = compiler.explicate_control(program)
         trace(program)
         total_passes += 1
@@ -601,10 +691,9 @@ def compile_and_test(compiler, compiler_name,
                       compiler_name)
     
     if type_check_C:
-        trace('\n**********\n type check C \n**********\n')
         type_check_C(program)
         
-    trace('\n**********\n select \n**********\n')    
+    trace('\n# select instructions\n')
     pseudo_x86 = compiler.select_instructions(program)
     trace(pseudo_x86)
     trace("")
@@ -615,7 +704,7 @@ def compile_and_test(compiler, compiler_name,
             test_pass('select instructions', interp_x86, program_root, pseudo_x86,
                       compiler_name)
     
-    trace('\n**********\n assign \n**********\n')    
+    trace('\n# assign homes\n')    
     almost_x86 = compiler.assign_homes(pseudo_x86)
     trace(almost_x86)
     trace("")
@@ -625,7 +714,7 @@ def compile_and_test(compiler, compiler_name,
             test_pass('assign homes', interp_x86, program_root, almost_x86,
                       compiler_name)
     
-    trace('\n**********\n patch \n**********\n')        
+    trace('\n# patch instructions')        
     x86 = compiler.patch_instructions(almost_x86)
     trace(x86)
     trace("")
@@ -635,7 +724,7 @@ def compile_and_test(compiler, compiler_name,
             test_pass('patch instructions', interp_x86, program_root, x86,
                       compiler_name)
 
-    trace('\n**********\n prelude and conclusion \n**********\n')
+    trace('\n# prelude and conclusion\n')
     x86 = compiler.prelude_and_conclusion(x86)
     trace(x86)
     trace("")
@@ -688,51 +777,69 @@ def compile(compiler, compiler_name, type_check_P, type_check_C,
     with open(program_filename) as source:
         program = parse(source.read())
 
-    trace('\n**********\n type check \n**********\n')        
+    trace('\n# type check\n')        
     type_check_P(program)
     trace_ast_and_concrete(program)
         
     if hasattr(compiler, 'shrink'):
-        trace('\n**********\n shrink \n**********\n')
+        trace('\n# shrink\n')
         program = compiler.shrink(program)
         trace_ast_and_concrete(program)
 
+    if hasattr(compiler, 'uniquify'):
+        trace('\n# uniquify\n')
+        program = compiler.uniquify(program)
+        trace_ast_and_concrete(program)
+        
     if hasattr(compiler, 'reveal_functions'):
-        trace('\n**********\n reveal functions \n**********\n')
+        trace('\n# reveal functions\n')
+        type_check_P(program)
         program = compiler.reveal_functions(program)
+        trace_ast_and_concrete(program)
+
+    if hasattr(compiler, 'convert_assignments'):
+        trace('\n# assignment conversion\n')
+        type_check_P(program)
+        program = compiler.convert_assignments(program)
+        trace_ast_and_concrete(program)
+        
+    if hasattr(compiler, 'convert_to_closures'):
+        trace('\n# closure conversion\n')
+        type_check_P(program)
+        program = compiler.convert_to_closures(program)
         trace_ast_and_concrete(program)
         
     if hasattr(compiler, 'expose_allocation'):
-        trace('\n**********\n expose allocation \n**********\n')
+        trace('\n# expose allocation\n')
         type_check_P(program)
         program = compiler.expose_allocation(program)
         trace_ast_and_concrete(program)
         
-    trace('\n**********\n remove \n**********\n')
+    trace('\n# remove complex\n')
     program = compiler.remove_complex_operands(program)
     trace_ast_and_concrete(program)
     
     if hasattr(compiler, 'explicate_control'):
-        trace('\n**********\n explicate \n**********\n')
+        trace('\n# explicate control\n')
         program = compiler.explicate_control(program)
         trace_ast_and_concrete(program)
 
     if type_check_C:
         type_check_C(program)
         
-    trace('\n**********\n select \n**********\n')    
+    trace('\n# select instructions\n')    
     pseudo_x86 = compiler.select_instructions(program)
     trace_ast_and_concrete(pseudo_x86)
     
-    trace('\n**********\n assign \n**********\n')    
+    trace('\n# assign homes\n')    
     almost_x86 = compiler.assign_homes(pseudo_x86)
     trace_ast_and_concrete(almost_x86)
     
-    trace('\n**********\n patch \n**********\n')        
+    trace('\n# patch instructions\n')        
     x86 = compiler.patch_instructions(almost_x86)
     trace_ast_and_concrete(x86)
 
-    trace('\n**********\n prelude and conclusion \n**********\n')
+    trace('\n# prelude and conclusion\n')
     x86 = compiler.prelude_and_conclusion(x86)
     trace_ast_and_concrete(x86)
     

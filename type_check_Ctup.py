@@ -1,10 +1,24 @@
 from ast import *
-from type_check_Cif import check_type_equal, Bottom
 from type_check_Cwhile import TypeCheckCwhile
-from utils import Allocate, Begin, GlobalValue, Collect, TupleType
+from utils import Allocate, Begin, GlobalValue, Collect, TupleType, Bottom
 
 class TypeCheckCtup(TypeCheckCwhile):
-    
+
+  def check_type_equal(self, t1, t2, e):
+    match t1:
+      case TupleType(ts1):
+        match t2:
+          case TupleType(ts2):
+            for (ty1, ty2) in zip(ts1,ts2):
+              self.check_type_equal(ty1, ty2, e)
+          case Bottom():
+            pass
+          case _:
+            raise Exception('error: ' + repr(t1) + ' != ' + repr(t2) \
+                      + ' in ' + repr(e))
+      case _:
+        super().check_type_equal(t1, t2, e)
+  
   def type_check_exp(self, e, env):
     match e:
         case Allocate(length, typ):
@@ -36,16 +50,17 @@ class TypeCheckCtup(TypeCheckCwhile):
     match s:      
       case Collect(size):
         pass
-      case Assign([Subscript(tup, Constant(index))], value):
+      case Assign([Subscript(tup, Constant(index), Store())], value):
         tup_t = self.type_check_atm(tup, env)
         value_t = self.type_check_atm(value, env)
         match tup_t:
           case TupleType(ts):
-            check_type_equal(ts[index], value_t, s)
+            self.check_type_equal(ts[index], value_t, s)
           case Bottom():
               pass
           case _:
-            raise Exception('error, expected a tuple, not ' + repr(tup_t))
+            raise Exception('type_check_stmt: expected a tuple, not ' \
+                            + repr(tup_t))
       case _:
         return super().type_check_stmt(s, env)
       

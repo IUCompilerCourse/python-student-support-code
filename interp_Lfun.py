@@ -26,7 +26,7 @@ class InterpLfun(InterpLtup):
     
   def interp_exp(self, e, env):
     match e:
-      case Call(Name('input_int'), []):
+      case Call(Name(f), args) if (f == 'input_int') or (f == 'len') or (f == 'print'):
         return super().interp_exp(e, env)      
       case Call(func, args):
         f = self.interp_exp(func, env)

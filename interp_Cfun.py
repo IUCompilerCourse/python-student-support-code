@@ -25,6 +25,8 @@ class InterpCfun(InterpCtup):
     match e:
       case Call(Name('input_int'), []):
         return super().interp_exp(e, env)      
+      case Call(Name('len'), [tup]):
+        return super().interp_exp(e, env)      
       case Call(func, args):
         f = self.interp_exp(func, env)
         vs = [self.interp_exp(arg, env) for arg in args]

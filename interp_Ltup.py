@@ -14,7 +14,8 @@ class InterpLtup(InterpLwhile):
   def interp_exp(self, e, env):
     match e:
       case Tuple(es, Load()):
-        return tuple([self.interp_exp(e, env) for e in es])
+        # use a list for mutability
+        return [self.interp_exp(e, env) for e in es]
       case Subscript(tup, index, Load()):
         t = self.interp_exp(tup, env)
         n = self.interp_exp(index, env)
