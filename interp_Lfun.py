@@ -32,7 +32,7 @@ class InterpLfun(InterpLtup):
         f = self.interp_exp(func, env)
         vs = [self.interp_exp(arg, env) for arg in args]
         return self.apply_fun(f, vs, e)
-      case FunRef(id):
+      case FunRef(id, arity):
         return env[id]
       case _:
         return super().interp_exp(e, env)
@@ -43,21 +43,23 @@ class InterpLfun(InterpLtup):
     match ss[0]:
       case Return(value):
         return self.interp_exp(value, env)
+      case FunctionDef(name, params, bod, dl, returns, comment):
+        if isinstance(params, ast.arguments):
+            ps = [p.arg for p in params.args]
+        else:
+            ps = [x for (x,t) in params]
+        env[name] = Function(name, ps, bod, env)
+        return self.interp_stmts(ss[1:], env)
       case _:
         return super().interp_stmts(ss, env)
-    
+
   def interp(self, p):
     match p:
-      case Module(defs):
+      case Module(ss):
         env = {}
-        for d in defs:
-            match d:
-              case FunctionDef(name, params, bod, dl, returns, comment):
-                if isinstance(params, ast.arguments):
-                    ps = [p.arg for p in params.args]
-                else:
-                    ps = [x for (x,t) in params]
-                env[name] = Function(name, ps, bod, env)
-        self.apply_fun(env['main'], [], None)
+        self.interp_stmts(ss, env)
+        #trace('interp global env: ' + repr(env))
+        if 'main' in env.keys():
+            self.apply_fun(env['main'], [], None)
       case _:
         raise Exception('interp: unexpected ' + repr(p))

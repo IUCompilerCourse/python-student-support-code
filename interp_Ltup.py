@@ -26,9 +26,6 @@ class InterpLtup(InterpLwhile):
       case Allocate(length, typ):
         array = [None] * length
         return array
-      case Begin(ss, e):
-        self.interp_stmts(ss, env)
-        return self.interp_exp(e, env)
       case GlobalValue(name):
         return 0 # ???
       case _:

@@ -1,4 +1,5 @@
 from ast import *
+from utils import IntType
 
 class TypeCheckLvar:
           
@@ -11,20 +12,20 @@ class TypeCheckLvar:
     match e:
       case BinOp(left, Add(), right):
         l = self.type_check_exp(left, env)
-        self.check_type_equal(l, int, left)
+        self.check_type_equal(l, IntType(), left)
         r = self.type_check_exp(right, env)
-        self.check_type_equal(r, int, right)
-        return int
+        self.check_type_equal(r, IntType(), right)
+        return IntType()
       case UnaryOp(USub(), v):
         t = self.type_check_exp(v, env)
-        self.check_type_equal(t, int, v)
-        return int
+        self.check_type_equal(t, IntType(), v)
+        return IntType()
       case Name(id):
         return env[id]
       case Constant(value) if isinstance(value, int):
-        return int
+        return IntType()
       case Call(Name('input_int'), []):
-        return int
+        return IntType()
       case _:
         raise Exception('type_check_exp: unexpected ' + repr(e))
 
@@ -41,7 +42,7 @@ class TypeCheckLvar:
         return self.type_check_stmts(ss[1:], env)
       case Expr(Call(Name('print'), [arg])):
         t = self.type_check_exp(arg, env)
-        self.check_type_equal(t, int, arg)
+        self.check_type_equal(t, IntType(), arg)
         return self.type_check_stmts(ss[1:], env)
       case Expr(value):
         self.type_check_exp(value, env)

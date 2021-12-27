@@ -1,6 +1,7 @@
 from ast import *
 from type_check_Cwhile import TypeCheckCwhile
-from utils import Allocate, Begin, GlobalValue, Collect, TupleType, Bottom
+from utils import Allocate, Begin, GlobalValue, Collect, TupleType, Bottom, \
+  IntType, BoolType
 
 class TypeCheckCtup(TypeCheckCwhile):
 
@@ -24,7 +25,7 @@ class TypeCheckCtup(TypeCheckCwhile):
         case Allocate(length, typ):
           return typ
         case GlobalValue(name):
-          return int
+          return IntType()
         case Subscript(tup, Constant(index), Load()):
           tup_t = self.type_check_atm(tup, env)
           match tup_t:
@@ -38,7 +39,7 @@ class TypeCheckCtup(TypeCheckCwhile):
           tup_t = self.type_check_atm(tup, env)
           match tup_t:
             case TupleType(ts):
-              return int
+              return IntType()
             case Bottom():
               return Bottom()
             case _:

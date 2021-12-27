@@ -14,14 +14,43 @@ class TypeCheckLlambda(TypeCheckLfun):
       case Name(id):
         e.has_type = env[id]
         return env[id]
-      case FunRefArity(id, arity):
+      case FunRef(id, arity):
         return env[id]
       case Closure(arity, es):
         ts = [self.type_check_exp(e, env) for e in es]
         e.has_type = TupleType(ts)
         return e.has_type
       case Lambda(params, body):
-        raise Exception('cannot synthesize a type for a lambda')
+        raise Exception('cannot synthesize a type for lambda: ' + str(e))
+      case AllocateClosure(length, typ, arity):
+        return typ
+      case Call(Name('input_int'), []):
+        return super().type_check_exp(e, env)
+      case Call(Name('len'), [tup]):
+        return super().type_check_exp(e, env)
+      case Call(Name('arity'), [func]):
+        func_t = self.type_check_exp(func, env)
+        match func_t:
+          case FunctionType(params_t, return_t):
+            return IntType()
+          case TupleType(elts_t): # after closure conversion
+            return IntType()
+          case _:
+            raise Exception('type_check_exp: in arity, unexpected ' + \
+                            repr(func_t))
+      case Call(func, args):
+        func_t = self.type_check_exp(func, env)
+        match func_t:
+          case FunctionType(params_t, return_t):
+            for (arg, param_t) in zip(args, params_t):
+                self.check_exp(arg, param_t, env)
+            # self.check_type_equal(return_t, ty, e)
+            return return_t
+          case _:
+            raise Exception('type_check_exp: in call, unexpected ' + \
+                            repr(func_t))
+      case Uninitialized(ty):
+        return ty
       case _:
         return super().type_check_exp(e, env)
     
@@ -29,7 +58,6 @@ class TypeCheckLlambda(TypeCheckLfun):
     match e:
       case Lambda(params, body):
         e.has_type = ty
-        #trace('*** tc_check lambda ' + repr(ty) + '\n')
         if isinstance(params, ast.arguments):
           new_params = [a.arg for a in params.args]
           e.args = new_params
@@ -45,18 +73,6 @@ class TypeCheckLlambda(TypeCheckLfun):
             pass
           case _:
             raise Exception('lambda does not have type ' + str(ty))
-      case Call(Name('input_int'), []):
-        return int
-      case Call(func, args):
-        func_t = self.type_check_exp(func, env)
-        match func_t:
-          case FunctionType(params_t, return_t):
-            for (arg, param_t) in zip(args, params_t):
-                self.check_exp(arg, param_t, env)
-            self.check_type_equal(return_t, ty, e)
-          case _:
-            raise Exception('type_check_exp: in call, unexpected ' + \
-                            repr(func_t))
       case _:
         t = self.type_check_exp(e, env)
         self.check_type_equal(t, ty, e)
@@ -84,11 +100,12 @@ class TypeCheckLlambda(TypeCheckLfun):
       case Return(value):
         #trace('** tc_check return ' + repr(value))
         self.check_exp(value, return_ty, env)
-      case Assign([Name(id)], value):
-        if id in env:
-          self.check_exp(value, env[id], env)
+      case Assign([v], value) if isinstance(v, Name):
+        if v.id in env:
+          self.check_exp(value, env[v.id], env)
         else:
-          env[id] = self.type_check_exp(value, env)
+          env[v.id] = self.type_check_exp(value, env)
+        v.has_type = env[v.id]
         self.check_stmts(ss[1:], return_ty, env)
       case Assign([Subscript(tup, Constant(index), Store())], value):
         tup_t = self.type_check_exp(tup, env)
@@ -101,19 +118,34 @@ class TypeCheckLlambda(TypeCheckLfun):
             raise Exception('check_stmts: expected a tuple, not ' \
                             + repr(tup_t))
         self.check_stmts(ss[1:], return_ty, env)
-      case AnnAssign(Name(id), ty, value, simple):
+      case AnnAssign(v, ty, value, simple) if isinstance(v, Name):
         ty_annot = self.parse_type_annot(ty)
         ss[0].annotation = ty_annot
-        if id in env:
-            self.check_type_equal(env[id], ty_annot)
+        if v.id in env:
+            self.check_type_equal(env[v.id], ty_annot)
         else:
-            env[id] = ty_annot
+            env[v.id] = ty_annot
+        v.has_type = env[v.id]
         self.check_exp(value, ty_annot, env)
         self.check_stmts(ss[1:], return_ty, env)
       case _:
         self.type_check_stmts(ss, env)
 
-        
+  def type_check_stmts(self, ss, env):
+    if len(ss) == 0:
+      return
+    match ss[0]:
+      case Assign([v], value) if isinstance(v, Name):
+        t = self.type_check_exp(value, env)
+        if v.id in env:
+          self.check_type_equal(env[v.id], t, value)
+        else:
+          env[v.id] = t
+        v.has_type = env[v.id]
+        return self.type_check_stmts(ss[1:], env)
+      case _:
+        return super().type_check_stmts(ss, env)
+      
   def type_check(self, p):
     #trace('*** type check Llambda')
     match p:
@@ -125,9 +157,11 @@ class TypeCheckLlambda(TypeCheckLfun):
                 if isinstance(params, ast.arguments):
                     params_t = [self.parse_type_annot(p.annotation) \
                                 for p in params.args]
+                    returns_t = self.parse_type_annot(returns)
                 else:
                     params_t = [t for (x,t) in params]
-                env[name] = FunctionType(params_t, self.parse_type_annot(returns))
-        self.check_stmts(body, int, env)
+                    returns_t = returns
+                env[name] = FunctionType(params_t, returns_t)
+        self.check_stmts(body, IntType(), env)
       case _:
         raise Exception('type_check: unexpected ' + repr(p))

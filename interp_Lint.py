@@ -55,7 +55,8 @@ class InterpLint:
       return
     match ss[0]:
       case Expr(Call(Name('print'), [arg])):
-        print(self.interp_exp(arg, env), end='')
+        val = self.interp_exp(arg, env)
+        print(val, end='')
         return self.interp_stmts(ss[1:], env)
       case Expr(value):
         self.interp_exp(value, env)

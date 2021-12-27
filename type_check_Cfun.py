@@ -23,7 +23,7 @@ class TypeCheckCfun(TypeCheckCtup):
   
   def type_check_exp(self, e, env):
     match e:
-      case FunRef(id):
+      case FunRef(id, arity):
         return env[id]
       case Call(Name('input_int'), []):
         return super().type_check_exp(e, env)      
@@ -55,6 +55,7 @@ class TypeCheckCfun(TypeCheckCtup):
             old_env = copy.deepcopy(new_env)
             for (l,ss) in blocks.items():
                 self.type_check_stmts(ss, new_env)
+            # trace('type_check_Cfun iterating ' + repr(new_env))
             if new_env == old_env:
                 break
         # todo check return type

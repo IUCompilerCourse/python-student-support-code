@@ -10,7 +10,7 @@ class TypeCheckLwhile(TypeCheckLif):
     match ss[0]:
       case While(test, body, []):
         test_t = self.type_check_exp(test, env)
-        self.check_type_equal(bool, test_t, test)
+        self.check_type_equal(BoolType(), test_t, test)
         body_t = self.type_check_stmts(body, env)
         return self.type_check_stmts(ss[1:], env)
       case _:

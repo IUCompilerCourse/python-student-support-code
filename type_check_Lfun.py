@@ -26,9 +26,9 @@ class TypeCheckLfun(TypeCheckLtup):
       match annot:
         case Name(id):
           if id == 'int':
-            return int
+            return IntType()
           elif id == 'bool':
-            return bool
+            return BoolType()
           else:
             raise Exception('parse_type_annot: unexpected ' + repr(annot))
         case TupleType(ts):
@@ -41,16 +41,26 @@ class TypeCheckLfun(TypeCheckLtup):
                               self.parse_type_annot(rt))
         case Subscript(Name('tuple'), Tuple(ts)):
           return TupleType([self.parse_type_annot(t) for t in ts])
-        case t if t == int or t == bool or t == type(None):
+        case IntType():
           return annot
+        case BoolType():
+          return annot
+        case VoidType():
+          return annot
+        case t if t == int:
+          return IntType() 
+        case t if t == bool:
+          return BoolType()
+        case t if t == type(None):
+          return VoidType()
         case Constant(None):
-          return type(None)
+          return VoidType()
         case _:
             raise Exception('parse_type_annot: unexpected ' + repr(annot))
     
   def type_check_exp(self, e, env):
     match e:
-      case FunRef(id):
+      case FunRef(id, arity):
         return env[id]
       case Call(Name('input_int'), []):
         return super().type_check_exp(e, env)      
@@ -77,7 +87,8 @@ class TypeCheckLfun(TypeCheckLtup):
       case FunctionDef(name, params, body, dl, returns, comment):
         new_env = {x: t for (x,t) in env.items()}
         if isinstance(params, ast.arguments):
-            new_params = [(p.arg, self.parse_type_annot(p.annotation)) for p in params.args]
+            new_params = [(p.arg, self.parse_type_annot(p.annotation)) \
+                          for p in params.args]
             ss[0].args = new_params
             new_returns = self.parse_type_annot(returns)
             ss[0].returns = new_returns
