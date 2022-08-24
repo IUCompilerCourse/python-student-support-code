@@ -2,14 +2,14 @@ from ast import *
 from interp_Lfun import InterpLfun, Function
 from utils import *
 
-
-class ClosureTuple:
+class ClosureTuple(Value):
   __match_args__ = ("args", "arity")
   def __init__(self, args, arity):
     self.args = args
     self.arity = arity
   def __repr__(self):
     return 'ClosureTuple(' + repr(self.args) + ', ' + repr(self.arity) + ')'
+  # TODO: move the following into interp_getitem and interp_setitem 
   def __getitem__(self, item):
     return self.args[item]
   def __setitem__(self, item, value):
@@ -51,6 +51,8 @@ class InterpLlambda(InterpLfun):
     match ss[0]:
       case AnnAssign(lhs, typ, value, simple):
         env[lhs.id] = self.interp_exp(value, env)
+        return self.interp_stmts(ss[1:], env)
+      case Pass():
         return self.interp_stmts(ss[1:], env)
       case _:
         return super().interp_stmts(ss, env)

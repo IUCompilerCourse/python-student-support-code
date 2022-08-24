@@ -63,6 +63,7 @@ class TypeCheckLtup(TypeCheckLwhile):
         return self.type_check_stmts(ss[1:], env)
       case Assign([Subscript(tup, Constant(index), Store())], value):
         tup_t = self.type_check_exp(tup, env)
+        tup.has_type = tup_t
         value_t = self.type_check_exp(value, env)
         match tup_t:
           case TupleType(ts):

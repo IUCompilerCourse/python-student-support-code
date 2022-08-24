@@ -12,16 +12,16 @@ class TypeCheckCany(TypeCheckClambda):
         t = self.type_check_exp(value, env)
         self.check_type_equal(t, AnyType(), e)
         return IntType()
-      case Call(Name('any_tuple_load'), [tup, index]):
+      case Call(Name('any_load'), [tup, index]):
         t = self.type_check_exp(tup, env)
         self.check_type_equal(t, AnyType(), e)
         return AnyType()
-      case Call(Name('any_tuple_store'), [tup, index, value]):
-        t = self.type_check_exp(tup, env)
-        self.check_type_equal(t, AnyType(), e)
-        v = self.type_check_exp(value, env)
-        self.check_type_equal(v, AnyType(), e)
-        return type(None) # ??
+      # case Call(Name('any_tuple_store'), [tup, index, value]):
+      #   t = self.type_check_exp(tup, env)
+      #   self.check_type_equal(t, AnyType(), e)
+      #   v = self.type_check_exp(value, env)
+      #   self.check_type_equal(v, AnyType(), e)
+      #   return type(None) # ??
       case Call(Name('any_len'), [tup]):
         t = self.type_check_exp(tup, env)
         self.check_type_equal(t, AnyType(), e)
@@ -39,6 +39,8 @@ class TypeCheckCany(TypeCheckClambda):
           case FunctionType(ps, rt):
             return IntType()
           case TupleType([FunctionType(ps,rs)]):  # after closure conversion
+            return IntType()
+          case Bottom():
             return IntType()
           case _:
             raise Exception('type_check_exp arity unexpected ' + repr(ty))

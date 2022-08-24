@@ -1,10 +1,10 @@
 import ast
 from ast import *
-from type_check_Ltup import TypeCheckLtup
+from type_check_Larray import TypeCheckLarray
 from utils import *
 import typing
 
-class TypeCheckLfun(TypeCheckLtup):
+class TypeCheckLfun(TypeCheckLarray):
 
   def check_type_equal(self, t1, t2, e):
     if t1 == Bottom() or t2 == Bottom():
@@ -15,7 +15,7 @@ class TypeCheckLfun(TypeCheckLtup):
           case FunctionType(ps2, rt2):
             for (p1,p2) in zip(ps1, ps2):
               self.check_type_equal(p1, p2, e)
-              self.check_type_equal(rt1, rt2, e)
+            self.check_type_equal(rt1, rt2, e)
           case _:
             raise Exception('error: ' + repr(t1) + ' != ' + repr(t2) \
                             + ' in ' + repr(e))
@@ -33,6 +33,8 @@ class TypeCheckLfun(TypeCheckLtup):
             raise Exception('parse_type_annot: unexpected ' + repr(annot))
         case TupleType(ts):
           return TupleType([self.parse_type_annot(t) for t in ts])
+        case ListType(elt_ty):
+          return ListType(self.parse_type_annot(elt_ty))
         case FunctionType(ps, rt):
           return FunctionType([self.parse_type_annot(t) for t in ps],
                               self.parse_type_annot(rt))
@@ -41,6 +43,10 @@ class TypeCheckLfun(TypeCheckLtup):
                               self.parse_type_annot(rt))
         case Subscript(Name('tuple'), Tuple(ts)):
           return TupleType([self.parse_type_annot(t) for t in ts])
+        case Subscript(Name('tuple'), t):
+          return TupleType([self.parse_type_annot(t)])
+        case Subscript(Name('list'), ty):
+          return ListType(self.parse_type_annot(ty))
         case IntType():
           return annot
         case BoolType():
@@ -56,15 +62,13 @@ class TypeCheckLfun(TypeCheckLtup):
         case Constant(None):
           return VoidType()
         case _:
-            raise Exception('parse_type_annot: unexpected ' + repr(annot))
+          raise Exception('parse_type_annot: unexpected ' + repr(annot))
     
   def type_check_exp(self, e, env):
     match e:
       case FunRef(id, arity):
         return env[id]
-      case Call(Name('input_int'), []):
-        return super().type_check_exp(e, env)      
-      case Call(Name('len'), [tup]):
+      case Call(Name(f), args) if f in builtin_functions:
         return super().type_check_exp(e, env)      
       case Call(func, args):
         func_t = self.type_check_exp(func, env)
@@ -82,7 +86,7 @@ class TypeCheckLfun(TypeCheckLtup):
 
   def type_check_stmts(self, ss, env):
     if len(ss) == 0:
-      return
+      return VoidType()
     match ss[0]:
       case FunctionDef(name, params, body, dl, returns, comment):
         new_env = {x: t for (x,t) in env.items()}

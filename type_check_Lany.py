@@ -6,6 +6,15 @@ import typing
 
 class TypeCheckLany(TypeCheckLlambda):
 
+  def parse_type_annot(self, annot):
+      match annot:
+        case Name('Any'):
+          return AnyType()
+        case AnyType():
+          return AnyType()
+        case _:
+          return super().parse_type_annot(annot)
+        
   def type_check_exp(self, e, env):
     match e:
       case Inject(value, typ):
@@ -14,9 +23,17 @@ class TypeCheckLany(TypeCheckLlambda):
       case Project(value, typ):
         self.check_exp(value, AnyType(), env)
         return typ
-      case Call(Name('any_tuple_load'), [tup, index]):
+      case Call(Name(atl), [tup, index]) \
+          if atl == 'any_load' or atl == 'any_load_unsafe':
         self.check_exp(tup, AnyType(), env)
+        self.check_exp(index, IntType(), env)
         return AnyType()
+      case Call(Name(atl), [tup, index, value]) \
+          if atl == 'any_store' or atl == 'any_store_unsafe':
+        self.check_exp(tup, AnyType(), env)
+        self.type_check_exp(value, env)
+        self.check_exp(index, IntType(), env)
+        return VoidType()
       case Call(Name('any_len'), [tup]):
         self.check_exp(tup, AnyType(), env)
         return IntType()
@@ -50,21 +67,3 @@ class TypeCheckLany(TypeCheckLlambda):
         return FunctionType([t for (x,t) in params], return_t)
       case _:
         return super().type_check_exp(e, env)
-    
-  # def check_exp(self, e, ty, env):
-  #   match e:
-  #     case Call(Name('make_any'), [value, tag]):
-  #       pass
-  #     case Inject(value, typ):
-  #       pass
-  #     case Project(value, typ):
-  #       pass
-  #     case Call(Name('any_tuple_load'), [tup, index]):
-  #       pass
-  #     case _:
-  #       super().check_exp(e, ty, env)
-  #       return
-
-  #   t = self.type_check_exp(e, env)
-  #   self.check_type_equal(t, ty, e)
-        

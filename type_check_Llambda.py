@@ -24,10 +24,6 @@ class TypeCheckLlambda(TypeCheckLfun):
         raise Exception('cannot synthesize a type for lambda: ' + str(e))
       case AllocateClosure(length, typ, arity):
         return typ
-      case Call(Name('input_int'), []):
-        return super().type_check_exp(e, env)
-      case Call(Name('len'), [tup]):
-        return super().type_check_exp(e, env)
       case Call(Name('arity'), [func]):
         func_t = self.type_check_exp(func, env)
         match func_t:
@@ -38,6 +34,8 @@ class TypeCheckLlambda(TypeCheckLfun):
           case _:
             raise Exception('type_check_exp: in arity, unexpected ' + \
                             repr(func_t))
+      case Call(Name(f), args) if f in builtin_functions:
+        return super().type_check_exp(e, env)      
       case Call(func, args):
         func_t = self.type_check_exp(func, env)
         match func_t:
@@ -77,6 +75,8 @@ class TypeCheckLlambda(TypeCheckLfun):
         t = self.type_check_exp(e, env)
         self.check_type_equal(t, ty, e)
 
+  # Use check_stmts in contexts where there is an expected return type,
+  # such as inside the body of a function.
   def check_stmts(self, ss, return_ty, env):
     if len(ss) == 0:
       return
@@ -118,8 +118,8 @@ class TypeCheckLlambda(TypeCheckLfun):
             raise Exception('check_stmts: expected a tuple, not ' \
                             + repr(tup_t))
         self.check_stmts(ss[1:], return_ty, env)
-      case AnnAssign(v, ty, value, simple) if isinstance(v, Name):
-        ty_annot = self.parse_type_annot(ty)
+      case AnnAssign(v, type_annot, value, simple) if isinstance(v, Name):
+        ty_annot = self.parse_type_annot(type_annot)
         ss[0].annotation = ty_annot
         if v.id in env:
             self.check_type_equal(env[v.id], ty_annot)
@@ -142,6 +142,8 @@ class TypeCheckLlambda(TypeCheckLfun):
         else:
           env[v.id] = t
         v.has_type = env[v.id]
+        return self.type_check_stmts(ss[1:], env)
+      case Pass():
         return self.type_check_stmts(ss[1:], env)
       case _:
         return super().type_check_stmts(ss, env)

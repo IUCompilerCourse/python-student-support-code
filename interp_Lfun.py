@@ -1,5 +1,5 @@
 from ast import *
-from interp_Ltup import InterpLtup
+from interp_Larray import InterpLarray
 from utils import *
 
 class Function:
@@ -12,7 +12,7 @@ class Function:
     def __repr__(self):
         return 'Function(' + self.name + ', ...)'
 
-class InterpLfun(InterpLtup):
+class InterpLfun(InterpLarray):
 
   def apply_fun(self, fun, args, e):
       match fun:
@@ -26,7 +26,7 @@ class InterpLfun(InterpLtup):
     
   def interp_exp(self, e, env):
     match e:
-      case Call(Name(f), args) if (f == 'input_int') or (f == 'len') or (f == 'print'):
+      case Call(Name(f), args) if f in builtin_functions:
         return super().interp_exp(e, env)      
       case Call(func, args):
         f = self.interp_exp(func, env)

@@ -2,6 +2,7 @@ from ast import *
 from interp_Lfun import Function
 from interp_Llambda import InterpLlambda
 from utils import *
+from dataclasses import dataclass
 
 @dataclass(eq=True)
 class Tagged(Value):
@@ -50,6 +51,8 @@ class InterpLdyn(InterpLlambda):
       case Constant(n):
         return self.tag(super().interp_exp(e, env))
       case Tuple(es, Load()):
+        return self.tag(super().interp_exp(e, env))
+      case ast.List(es, Load()):
         return self.tag(super().interp_exp(e, env))
       case Lambda(params, body):
         return self.tag(super().interp_exp(e, env))
@@ -112,6 +115,11 @@ class InterpLdyn(InterpLlambda):
         t = self.interp_exp(tup, env)
         return self.tag(len(self.untag(t, 'tuple', e)))
 
+      # Larray operations
+      case BinOp(left, Mult(), right):
+          l = self.interp_exp(left, env); r = self.interp_exp(right, env)
+          return self.tag(self.untag(l, 'int', e) * self.untag(r, 'int', e))
+      
       case _:
         return super().interp_exp(e, env)
 

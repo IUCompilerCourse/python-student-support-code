@@ -1,17 +1,15 @@
 from ast import *
-from interp_Ctup import InterpCtup
+from interp_Carray import InterpCarray
 from utils import *
 from interp_Lfun import Function
 
-class InterpCfun(InterpCtup):
+class InterpCfun(InterpCarray):
 
   def apply_fun(self, fun, args, e):
       match fun:
         case Function(name, xs, blocks, env):
           old_blocks = self.blocks
           self.blocks = blocks
-          # trace('apply_fun ' + name)
-          # trace(blocks.keys())
           new_env = {x: v for (x,v) in env.items()}
           for (x,arg) in zip(xs, args):
               new_env[x] = arg
@@ -23,9 +21,7 @@ class InterpCfun(InterpCtup):
     
   def interp_exp(self, e, env):
     match e:
-      case Call(Name('input_int'), []):
-        return super().interp_exp(e, env)      
-      case Call(Name('len'), [tup]):
+      case Call(Name(f), args) if f in builtin_functions:
         return super().interp_exp(e, env)      
       case Call(func, args):
         f = self.interp_exp(func, env)

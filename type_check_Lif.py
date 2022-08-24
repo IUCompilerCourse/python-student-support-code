@@ -15,12 +15,6 @@ class TypeCheckLif(TypeCheckLvar):
         orelse_t = self.type_check_exp(orelse, env)
         self.check_type_equal(body_t, orelse_t, e)
         return body_t
-      case BinOp(left, Sub(), right):
-        l = self.type_check_exp(left, env)
-        self.check_type_equal(l, IntType(), left)
-        r = self.type_check_exp(right, env)
-        self.check_type_equal(r, IntType(), right)
-        return IntType()
       case UnaryOp(Not(), v):
         t = self.type_check_exp(v, env)
         self.check_type_equal(t, BoolType(), v)

@@ -1,9 +1,9 @@
 from ast import *
 from utils import *
-from type_check_Ctup import TypeCheckCtup
+from type_check_Carray import TypeCheckCarray
 import copy
 
-class TypeCheckCfun(TypeCheckCtup):
+class TypeCheckCfun(TypeCheckCarray):
 
   def check_type_equal(self, t1, t2, e):
     if t1 == Bottom() or t2 == Bottom():
@@ -23,11 +23,15 @@ class TypeCheckCfun(TypeCheckCtup):
   
   def type_check_exp(self, e, env):
     match e:
+      case Constant(None):
+        return VoidType()
       case FunRef(id, arity):
         return env[id]
       case Call(Name('input_int'), []):
         return super().type_check_exp(e, env)      
       case Call(Name('len'), [tup]):
+        return super().type_check_exp(e, env)      
+      case Call(Name('array_len'), [tup]):
         return super().type_check_exp(e, env)      
       case Call(func, args):
         func_t = self.type_check_exp(func, env)
