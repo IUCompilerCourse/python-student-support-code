@@ -41,9 +41,9 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    def select_instructions(self, p: Module) -> X86Program:
-        # YOUR CODE HERE
-        pass        
+    # def select_instructions(self, p: Module) -> X86Program:
+    #     # YOUR CODE HERE
+    #     pass        
 
     ############################################################################
     # Assign Homes
@@ -63,9 +63,9 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    def assign_homes(self, p: X86Program) -> X86Program:
-        # YOUR CODE HERE
-        pass        
+    # def assign_homes(self, p: X86Program) -> X86Program:
+    #     # YOUR CODE HERE
+    #     pass        
 
     ############################################################################
     # Patch Instructions
@@ -79,15 +79,15 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    def patch_instructions(self, p: X86Program) -> X86Program:
-        # YOUR CODE HERE
-        pass        
+    # def patch_instructions(self, p: X86Program) -> X86Program:
+    #     # YOUR CODE HERE
+    #     pass        
 
     ############################################################################
     # Prelude & Conclusion
     ############################################################################
 
-    def prelude_and_conclusion(self, p: X86Program) -> X86Program:
-        # YOUR CODE HERE
-        pass        
+    # def prelude_and_conclusion(self, p: X86Program) -> X86Program:
+    #     # YOUR CODE HERE
+    #     pass        
 
