@@ -54,12 +54,12 @@ class Compiler:
         pass        
 
     def assign_homes_instr(self, i: instr,
-                           home: Dict[location, arg]) -> instr:
+                           home: Dict[Variable, arg]) -> instr:
         # YOUR CODE HERE
         pass        
 
     def assign_homes_instrs(self, ss: List[instr],
-                            home: Dict[location, arg]) -> List[instr]:
+                            home: Dict[Variable, arg]) -> List[instr]:
         # YOUR CODE HERE
         pass        
 
