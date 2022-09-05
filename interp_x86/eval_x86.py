@@ -162,6 +162,8 @@ class X86Emulator:
             return self.variables[str(a.children[0])]
         elif a.data == 'int_a':
             return self.eval_imm(a.children[0])
+        elif a.data == 'neg_a':
+            return -self.eval_imm(a.children[0])
         elif a.data == 'mem_a':
             offset, reg = a.children
             addr = self.registers[reg]
