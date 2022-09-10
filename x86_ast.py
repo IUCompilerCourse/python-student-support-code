@@ -1,13 +1,19 @@
-from typing import List
-from utils import label_name, indent, dedent, indent_stmt
+from __future__ import annotations
 
+import ast
+from dataclasses import dataclass
+from typing import List
+
+from utils import dedent, indent, indent_stmt, label_name
+
+
+@dataclass(frozen=True)
 class X86Program:
-    __match_args__ = ("body",)
-    def __init__(self, body):
-        self.body = body
+    body: dict[str, list[instr]] | list[instr]
+
     def __str__(self):
         result = ''
-        if type(self.body) == dict:
+        if isinstance(self.body, dict):
             for (l,ss) in self.body.items():
                 if l == label_name('main'):
                     result += '\t.globl ' + label_name('main') + '\n'
@@ -24,189 +30,112 @@ class X86Program:
             dedent()
         result += '\n'
         return result
-    def __repr__(self):
-        return 'X86Program(' + repr(self.body) + ')'
 
+@dataclass(frozen=True)
 class X86ProgramDefs:
-    __match_args__ = ("defs",)
-    def __init__(self, defs):
-        self.defs = defs
+    defs: list[ast.FunctionDef]
+
     def __str__(self):
-        return '\n'.join([str(d) for d in self.defs])
-    def __repr__(self):
-        return 'X86ProgramDefs(' + repr(self.defs) + ')'
-    
+        return "\n".join([str(d) for d in self.defs])
+
 class instr: ...
 class arg: ...
 class location(arg): ...
-    
+
+@dataclass(frozen=True)
 class Instr(instr):
     instr: str
     args: List[arg]
-    
-    __match_args__ = ("instr", "args")
-    def __init__(self, instr, args):
-        self.instr = instr
-        self.args = args
+
     def source(self):
         return self.args[0]
     def target(self):
         return self.args[-1]
     def __str__(self):
         return indent_stmt() + self.instr + ' ' + ', '.join(str(a) for a in self.args) + '\n'
-    def __repr__(self):
-        return 'Instr(' + repr(self.instr) + ', ' + repr(self.args) + ')'
-    
+
+@dataclass(frozen=True)
 class Callq(instr):
-    __match_args__ = ("func", "num_args")
-    def __init__(self, func, num_args):
-        self.func = func
-        self.num_args = num_args
+    func: str
+    num_args: int
+
     def __str__(self):
         return indent_stmt() + 'callq' + ' ' + self.func + '\n'
-    def __repr__(self):
-        return 'Callq(' + repr(self.func) + ', ' + repr(self.num_args) + ')'
 
+@dataclass(frozen=True)
 class IndirectCallq(instr):
-    __match_args__ = ("func", "num_args")
-    def __init__(self, func, num_args):
-        self.func = func
-        self.num_args = num_args
+    func: arg
+    num_args: int
+
     def __str__(self):
         return indent_stmt() + 'callq' + ' *' + str(self.func) + '\n'
-    def __repr__(self):
-        return 'IndirectCallq(' + repr(self.func) + ', ' + repr(self.num_args) + ')'
-    
+
+@dataclass(frozen=True)
 class JumpIf(instr):
     cc: str
     label: str
-    
-    __match_args__ = ("cc", "label")
-    def __init__(self, cc, label):
-        self.cc = cc
-        self.label = label
+
     def __str__(self):
         return indent_stmt() + 'j' + self.cc + ' ' + self.label + '\n'
-    def __repr__(self):
-        return 'JumpIf(' + repr(self.cc) + ', ' + repr(self.label) + ')'
 
+@dataclass(frozen=True)
 class Jump(instr):
     label: str
-    
-    __match_args__ = ("label",)
-    def __init__(self, label):
-        self.label = label
+
     def __str__(self):
         return indent_stmt() + 'jmp ' + self.label + '\n'
-    def __repr__(self):
-        return 'Jump(' + repr(self.label) + ')'
 
+@dataclass(frozen=True)
 class IndirectJump(instr):
-    __match_args__ = ("target",)
-    def __init__(self, target):
-        self.target = target
+    target: location
+
     def __str__(self):
         return indent_stmt() + 'jmp *' + str(self.target) + '\n'
-    def __repr__(self):
-        return 'IndirectJump(' + repr(self.target) + ')'
-    
+
+@dataclass(frozen=True)
 class TailJump(instr):
-    __match_args__ = ("func","arity")
-    def __init__(self, func, arity):
-        self.func = func
-        self.arity = arity
+    func: arg
+    arity: int
+
     def __str__(self):
         return indent_stmt() + 'tailjmp ' + str(self.func) + '\n'
-    def __repr__(self):
-        return 'TailJump(' + repr(self.func) + ',' + repr(self.arity) + ')'
-    
+
+@dataclass(frozen=True)
 class Variable(location):
-    __match_args__ = ("id",)
-    def __init__(self, id):
-        self.id = id
+    id: str
+
     def __str__(self):
         return self.id
-    def __repr__(self):
-        return 'Variable(' + repr(self.id) + ')'
-    def __eq__(self, other):
-        if isinstance(other, Variable):
-            return self.id == other.id
-        else:
-            return False
-    def __hash__(self):
-        return hash(self.id)
 
+@dataclass(frozen=True)
 class Immediate(arg):
-    __match_args__ = ("value",)
-    def __init__(self, value):
-        self.value = value
+    value: int
+
     def __str__(self):
         return '$' +  str(self.value)
-    def __repr__(self):
-        return 'Immediate(' +  repr(self.value) + ')'
-    def __eq__(self, other):
-        if isinstance(other, Immediate):
-            return self.value == other.value
-        else:
-            return False
-    def __hash__(self):
-        return hash(self.value)
-    
+
+@dataclass(frozen=True)
 class Reg(location):
-    __match_args__ = ("id",)
-    def __init__(self, id):
-        self.id = id
+    id: str
+
     def __str__(self):
         return '%' + self.id
-    def __repr__(self):
-        return 'Reg(' + repr(self.id) + ')'
-    def __eq__(self, other):
-        if isinstance(other, Reg):
-            return self.id == other.id
-        else:
-            return False
-    def __hash__(self):
-        return hash(self.id)
-        
-class ByteReg(arg):
-    __match_args__ = ("id",)
-    def __init__(self, id):
-        self.id = id
-    def __str__(self):
-        return '%' + self.id
-    def __repr__(self):
-        return 'ByteReg(' + repr(self.id) + ')'
-    def __eq__(self, other):
-        if isinstance(other, ByteReg):
-            return self.id == other.id
-        else:
-            return False
-    def __hash__(self):
-        return hash(self.id)
-        
+
+@dataclass(frozen=True)
+class ByteReg(Reg):
+    pass
+
+@dataclass(frozen=True)
 class Deref(arg):
-    __match_args__ = ("reg", "offset")
-    def __init__(self, reg, offset):
-        self.reg = reg
-        self.offset = offset
+    reg: str
+    offset: int
+
     def __str__(self):
         return str(self.offset) + '(%' + self.reg + ')'
-    def __repr__(self):
-        return 'Deref(' + repr(self.reg) + ', ' + repr(self.offset) + ')'
-    def __eq__(self, other):
-        if isinstance(other, Deref):
-            return self.reg == other.reg and self.offset == other.offset
-        else:
-            return False
-    def __hash__(self):
-        return hash((self.reg, self.offset))
 
+@dataclass(frozen=True)
 class Global(arg):
-    __match_args__ = ("name",)
-    def __init__(self, name):
-        self.name = name
+    name: str
+
     def __str__(self):
-        return str(self.name) + "(%rip)"
-    def __repr__(self):
-        return 'Global(' + repr(self.name) + ')'
-    
+        return self.name + "(%rip)"
