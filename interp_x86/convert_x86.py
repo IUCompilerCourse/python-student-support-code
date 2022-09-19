@@ -1,16 +1,18 @@
 # Convert from the x86 AST classes defined in utils.py into the parse
 # tree format used by the interpreter.
 
+from ast import Constant, Name
+
 from lark import Tree
-from ast import Name, Constant
+from utils import GlobalValue, label_name
 from x86_ast import *
-from utils import label_name, GlobalValue
+
 
 def convert_int(value):
     if value >= 0:
-        return Tree('int_a', [Tree('int_a', [value])])
+        return Tree("int_a", [value])
     else:
-        return Tree('neg_a',[Tree('int_a', [- value])])
+        return Tree("neg_a", [Tree("int_a", [-value])])
 
 def convert_arg(arg):
     match arg:
@@ -46,11 +48,10 @@ def convert_program(p):
     if isinstance(p.body, list):
         main_instrs = [convert_instr(instr) for instr in p.body]
         main_block = Tree('block', [label_name('main')] + main_instrs)
-        return Tree('prog', [main_block]) 
+        return Tree('prog', [main_block])
     elif isinstance(p.body, dict):
         blocks = []
         for (l, ss) in p.body.items():
             blocks.append(Tree('block',
                                [l] + [convert_instr(instr) for instr in ss]))
         return Tree('prog', blocks)
-            
