@@ -3,10 +3,12 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
+
 from utils import *
 
-from .parser_x86 import x86_parser, x86_parser_instrs
 from .convert_x86 import convert_program
+from .parser_x86 import x86_parser, x86_parser_instrs
+
 
 def interp_x86(program):
     x86_program = convert_program(program)
@@ -14,7 +16,7 @@ def interp_x86(program):
     x86_output = emu.eval_program(x86_program)
     for s in x86_output:
         print(s, end='')
-    
+
 @dataclass
 class FunPointer:
     fun_name: str
@@ -29,14 +31,14 @@ class X86Emulator:
         self.registers['rsp'] = 1000
 
         self.global_vals = {}
-    
+
     def log(self, s):
         if self.logging:
             print(s)
-    
+
     def parse_and_eval_program(self, s):
         p = x86_parser.parse(s)
-        
+
     def eval_program(self, p):
         assert p.data == 'prog'
         blocks = {}
@@ -51,7 +53,7 @@ class X86Emulator:
             self.global_vals[name] = FunPointer(name)
 
         self.log('========== STARTING EXECUTION ==============================')
-    
+
         # start evaluating at "main" or at "start"
         if label_name('main') in blocks.keys():
             self.eval_instrs(blocks[label_name('main')], blocks,
@@ -59,7 +61,7 @@ class X86Emulator:
         elif label_name('start') in blocks.keys():
             self.eval_instrs(blocks[label_name('start')], blocks,
                              output)
-            
+
 
         self.log('FINAL STATE:')
         if self.logging:
@@ -83,13 +85,13 @@ class X86Emulator:
         orig_registers = self.registers.copy()
         orig_variables = self.variables.copy()
 
-        
+
 
         self.log('Executing instructions:')
         self.log(s)
 
         self.log('========== STARTING EXECUTION ==============================')
-    
+
         # start evaluating at "main"
         self.eval_instrs(p.children, blocks, output)
 
@@ -113,7 +115,7 @@ class X86Emulator:
 
         changes_df = pd.DataFrame(all_changes,
                                   columns=['Location', 'Old', 'New'])
-        
+
         return changes_df
 
     def diff_dicts(self, d_after, d_orig):
@@ -122,10 +124,10 @@ class X86Emulator:
             if d_orig[k] != d_after[k]:
                 keys_diff.append(k)
         return keys_diff
-        
+
     def print_state(self):
         import pandas as pd
-        
+
         pd.set_option("display.max_rows", None)
         memory = [[ f'mem {k}', self.memory[k] ] \
                   for k in sorted(self.memory.keys()) ]
@@ -146,7 +148,7 @@ class X86Emulator:
         for k, v in mem.items():
             self.log(f' {k}:\t {v}')
 
-    def eval_imm(self, e):
+    def eval_imm(self, e) -> int:
         if e.data == 'int_a':
             return int(e.children[0])
         elif e.data == 'neg_a':
@@ -154,16 +156,14 @@ class X86Emulator:
         else:
             raise Exception('eval_imm: unknown immediate:', e)
 
-    
+
     def eval_arg(self, a):
         if a.data == 'reg_a':
             return self.registers[str(a.children[0])]
         elif a.data == 'var_a':
             return self.variables[str(a.children[0])]
-        elif a.data == 'int_a':
-            return self.eval_imm(a.children[0])
-        elif a.data == 'neg_a':
-            return -self.eval_imm(a.children[0])
+        elif a.data == 'int_a' or a.data == 'neg_a':
+            return self.eval_imm(a)
         elif a.data == 'mem_a':
             offset, reg = a.children
             addr = self.registers[reg]
@@ -311,7 +311,7 @@ class X86Emulator:
                     self.log(f'CALL TO read_int: {self.registers["rax"]}')
                     if self.logging:
                         print(self.print_state())
-                    
+
                 elif target == 'initialize':
                     self.log(f'CALL TO initialize: {self.registers["rdi"]}, {self.registers["rsi"]}')
                     rootstack_size = self.registers['rdi']
@@ -398,7 +398,7 @@ class X86Emulator:
 
             if self.logging:
                 print(self.print_state())
-                
+
 
 
 
