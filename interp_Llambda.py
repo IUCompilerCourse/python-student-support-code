@@ -14,6 +14,8 @@ class ClosureTuple(Value):
     return self.args[item]
   def __setitem__(self, item, value):
     self.args[item] = value
+  def __len__(self):
+    return len(self.args)
        
 class InterpLlambda(InterpLfun):
 
@@ -45,15 +47,13 @@ class InterpLlambda(InterpLfun):
       case _:
         return super().interp_exp(e, env)
     
-  def interp_stmts(self, ss, env):
-    if len(ss) == 0:
-      return
-    match ss[0]:
+  def interp_stmt(self, s, env, cont):
+    match s:
       case AnnAssign(lhs, typ, value, simple):
         env[lhs.id] = self.interp_exp(value, env)
-        return self.interp_stmts(ss[1:], env)
+        return self.interp_stmts(cont, env)
       case Pass():
-        return self.interp_stmts(ss[1:], env)
+        return self.interp_stmts(cont, env)
       case _:
-        return super().interp_stmts(ss, env)
+        return super().interp_stmt(s, env, cont)
         

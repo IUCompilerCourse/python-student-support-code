@@ -32,14 +32,12 @@ class InterpCfun(InterpCarray):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmts(self, ss, env):
-    if len(ss) == 0:
-      raise Exception('interp_stmts function ended without return')
-    match ss[0]:
+  def interp_stmt(self, s, env, cont):
+    match s:
       case TailCall(func, args):
         return self.interp_exp(Call(func, args), env)
       case _:
-        return super().interp_stmts(ss, env)
+        return super().interp_stmt(s, env, cont)
     
   def interp(self, p):
     match p:

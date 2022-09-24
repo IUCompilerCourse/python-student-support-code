@@ -9,7 +9,8 @@ class InterpCarray(InterpCtup):
       case ast.List(es, Load()):
         return [self.interp_exp(e, env) for e in es]
       case BinOp(left, Mult(), right):
-          l = self.interp_exp(left, env); r = self.interp_exp(right, env)
+          l = self.interp_exp(left, env)
+          r = self.interp_exp(right, env)
           return l * r
       case AllocateArray(length, typ):
         array = [None] * length
@@ -20,11 +21,17 @@ class InterpCarray(InterpCtup):
       case Call(Name('array_load'), [tup, index]):
         t = self.interp_exp(tup, env)
         n = self.interp_exp(index, env)
-        return t[n]
+        if n < len(t):
+          return t[n]
+        else:
+          raise TrappedError('array index out of bounds')
       case Call(Name('array_store'), [tup, index, value]):
         tup = self.interp_exp(tup, env)
         index = self.interp_exp(index, env)
-        tup[index] = self.interp_exp(value, env)
+        if index < len(tup):
+          tup[index] = self.interp_exp(value, env)
+        else:
+          raise TrappedError('array index out of bounds')
         return None
       case _:
         return super().interp_exp(e, env)

@@ -37,10 +37,8 @@ class InterpLfun(InterpLarray):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmts(self, ss, env):
-    if len(ss) == 0:
-      return
-    match ss[0]:
+  def interp_stmt(self, s, env, cont):
+    match s:
       case Return(value):
         return self.interp_exp(value, env)
       case FunctionDef(name, params, bod, dl, returns, comment):
@@ -49,9 +47,9 @@ class InterpLfun(InterpLarray):
         else:
             ps = [x for (x,t) in params]
         env[name] = Function(name, ps, bod, env)
-        return self.interp_stmts(ss[1:], env)
+        return self.interp_stmts(cont, env)
       case _:
-        return super().interp_stmts(ss, env)
+        return super().interp_stmt(s, env, cont)
 
   def interp(self, p):
     match p:

@@ -34,8 +34,8 @@ class InterpLdyn(InterpLlambda):
       match v:
         case Tagged(val, tag):
           if tag != expected_tag:
-            raise Exception('expected tag ' + expected_tag \
-                            + ', not ' + ' ' + repr(v))
+            raise TrappedError('expected tag ' + expected_tag \
+                               + ', not ' + ' ' + repr(v))
           return val
         case _:
           raise Exception('expected Tagged value with ' + expected_tag \
@@ -123,34 +123,34 @@ class InterpLdyn(InterpLlambda):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmts(self, ss, env):
-    if len(ss) == 0:
-      return
-    match ss[0]:
+  def interp_stmt(self, s, env, cont):
+    match s:
     
       # Lif statements
       case If(test, body, orelse):
         v = self.interp_exp(test, env)
-        match self.untag(v, 'bool', ss[0]):
+        match self.untag(v, 'bool', s):
           case True:
-            return self.interp_stmts(body + ss[1:], env)
+            return self.interp_stmts(body + cont, env)
           case False:
-            return self.interp_stmts(orelse + ss[1:], env)
+            return self.interp_stmts(orelse + cont, env)
         
       # Lwhile statements
       case While(test, body, []):
-        while self.untag(self.interp_exp(test, env), 'bool', ss[0]):
-            self.interp_stmts(body, env)
-        return self.interp_stmts(ss[1:], env)
+        v = self.interp_exp(test, env)
+        if self.untag(v, 'bool', test):
+            self.interp_stmts(body + [s] + cont, env)
+        else:
+          return self.interp_stmts(cont, env)
     
       # Ltup statements
       case Assign([Subscript(tup, index)], value):
         tup = self.interp_exp(tup, env)
         index = self.interp_exp(index, env)
-        tup_v = self.untag(tup, 'tuple', ss[0])
-        index_v = self.untag(index, 'int', ss[0])
+        tup_v = self.untag(tup, 'tuple', s)
+        index_v = self.untag(index, 'int', s)
         tup_v[index_v] = self.interp_exp(value, env)
-        return self.interp_stmts(ss[1:], env)
+        return self.interp_stmts(cont, env)
 
       # override to tag the function
       case FunctionDef(name, params, bod, dl, returns, comment):
@@ -159,8 +159,8 @@ class InterpLdyn(InterpLlambda):
         else:
             ps = [x for (x,t) in params]
         env[name] = self.tag(Function(name, ps, bod, env))
-        return self.interp_stmts(ss[1:], env)
+        return self.interp_stmts(cont, env)
         
       case _:
-        return super().interp_stmts(ss, env)
+        return super().interp_stmt(s, env, cont)
     

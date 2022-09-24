@@ -4,16 +4,14 @@ from utils import *
 
 class InterpCif(InterpLif):
 
-  def interp_stmts(self, ss, env):
-    if len(ss) == 0:
-        return
-    match ss[0]:
+  def interp_stmt(self, s, env, cont):
+    match s:
       case Return(value):
         return self.interp_exp(value, env)
       case Goto(label):
         return self.interp_stmts(self.blocks[label], env)
       case _:
-        return super().interp_stmts(ss, env)
+        return super().interp_stmt(s, env, cont)
     
   def interp(self, p):
     match p:
