@@ -47,13 +47,12 @@ class InterpLlambda(InterpLfun):
       case _:
         return super().interp_exp(e, env)
     
-  def interp_stmt(self, s, env, cont):
+  def interp_stmt(self, s, env):
     match s:
       case AnnAssign(lhs, typ, value, simple):
         env[lhs.id] = self.interp_exp(value, env)
-        return self.interp_stmts(cont, env)
       case Pass():
-        return self.interp_stmts(cont, env)
+        pass
       case _:
-        return super().interp_stmt(s, env, cont)
+        return super().interp_stmt(s, env)
         

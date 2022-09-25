@@ -4,13 +4,11 @@ from utils import *
 
 class InterpLwhile(InterpLif):
 
-  def interp_stmt(self, s, env, cont):
+  def interp_stmt(self, s, env):
     match s:
       case While(test, body, []):
-        if self.interp_exp(test, env):
-            self.interp_stmts(body + [s] + cont, env)
-        else:
-          return self.interp_stmts(cont, env)
+        while self.interp_exp(test, env):
+            self.interp_stmts(body, env)
       case _:
-        return super().interp_stmt(s, env, cont)
+        super().interp_stmt(s, env)
     

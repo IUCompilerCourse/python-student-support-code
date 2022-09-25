@@ -58,14 +58,14 @@ class InterpLif(InterpLvar):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmt(self, s, env, cont):
+  def interp_stmt(self, s, env):
     match s:
       case If(test, body, orelse):
         match self.interp_exp(test, env):
           case True:
-            return self.interp_stmts(body + cont, env)
+            self.interp_stmts(body, env)
           case False:
-            return self.interp_stmts(orelse + cont, env)
+            self.interp_stmts(orelse, env)
       case _:
-        return super().interp_stmt(s, env, cont)
+        super().interp_stmt(s, env)
     

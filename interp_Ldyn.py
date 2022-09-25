@@ -1,5 +1,5 @@
 from ast import *
-from interp_Lfun import Function
+from interp_Lfun import Function, RetValue
 from interp_Llambda import InterpLlambda
 from utils import *
 from dataclasses import dataclass
@@ -123,7 +123,7 @@ class InterpLdyn(InterpLlambda):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmt(self, s, env, cont):
+  def interp_stmt(self, s, env):
     match s:
     
       # Lif statements
@@ -131,17 +131,19 @@ class InterpLdyn(InterpLlambda):
         v = self.interp_exp(test, env)
         match self.untag(v, 'bool', s):
           case True:
-            return self.interp_stmts(body + cont, env)
+            return self.interp_stmts(body, env)
           case False:
-            return self.interp_stmts(orelse + cont, env)
+            return self.interp_stmts(orelse, env)
         
       # Lwhile statements
       case While(test, body, []):
-        v = self.interp_exp(test, env)
-        if self.untag(v, 'bool', test):
-            self.interp_stmts(body + [s] + cont, env)
-        else:
-          return self.interp_stmts(cont, env)
+        while self.untag(self.interp_exp(test,env), 'bool', test): 
+          r = self.interp_stmts(body, env)
+          match r:
+            case RetValue(_):
+              return r
+            case _:
+              pass
     
       # Ltup statements
       case Assign([Subscript(tup, index)], value):
@@ -150,7 +152,6 @@ class InterpLdyn(InterpLlambda):
         tup_v = self.untag(tup, 'tuple', s)
         index_v = self.untag(index, 'int', s)
         tup_v[index_v] = self.interp_exp(value, env)
-        return self.interp_stmts(cont, env)
 
       # override to tag the function
       case FunctionDef(name, params, bod, dl, returns, comment):
@@ -159,8 +160,7 @@ class InterpLdyn(InterpLlambda):
         else:
             ps = [x for (x,t) in params]
         env[name] = self.tag(Function(name, ps, bod, env))
-        return self.interp_stmts(cont, env)
         
       case _:
-        return super().interp_stmt(s, env, cont)
+        return super().interp_stmt(s, env)
     

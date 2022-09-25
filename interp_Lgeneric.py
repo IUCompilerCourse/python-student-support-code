@@ -11,16 +11,14 @@ class InterpLgeneric(InterpLlambda):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmts(self, ss, env):
-    if len(ss) == 0:
-      return
-    match ss[0]:
+  def interp_stmt(self, s, env):
+    match s:
       case ImportFrom():
-        return self.interp_stmts(ss[1:], env)
+        pass 
       case Assign([Name(id)], Call(Name('TypeVar'), args)):
-        return self.interp_stmts(ss[1:], env)
+        pass
       case Pass():
-        return self.interp_stmts(ss[1:], env)
+        pass 
       case _:
         return super().interp_stmts(ss, env)
         

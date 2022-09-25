@@ -50,27 +50,19 @@ class InterpLint:
       case _:
         raise Exception('error in interp_exp, unexpected ' + repr(e))
 
-  # The cont parameter is a list of statements that are the
-  # continuaton of the current statement s.
-  # We use this continuation-passing approach because
-  # it enables the handling of Goto in interp_Cif.py.
-  def interp_stmt(self, s, env, cont):
+  def interp_stmt(self, s, env):
     match s:
       case Expr(Call(Name('print'), [arg])):
         val = self.interp_exp(arg, env)
         print(val, end='')
-        return self.interp_stmts(cont, env)
       case Expr(value):
         self.interp_exp(value, env)
-        return self.interp_stmts(cont, env)
       case _:
         raise Exception('error in interp_stmt, unexpected ' + repr(s))
     
   def interp_stmts(self, ss, env):
-    if len(ss) == 0:
-      return None
-    else:
-      return self.interp_stmt(ss[0], env, ss[1:])
+    for s in ss:
+      self.interp_stmt(s, env)
 
   def interp(self, p):
     match p:

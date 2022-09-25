@@ -42,7 +42,7 @@ class InterpLarray(InterpLtup):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmt(self, s, env, cont):
+  def interp_stmt(self, s, env):
     match s:
       case Assign([Subscript(tup, index)], value):
         t = self.interp_exp(tup, env)
@@ -51,6 +51,5 @@ class InterpLarray(InterpLtup):
           t[n] = self.interp_exp(value, env)
         else:
           raise TrappedError('array index out of bounds')
-        return self.interp_stmts(cont, env)
       case _:
-        return super().interp_stmt(s, env, cont)
+        super().interp_stmt(s, env)

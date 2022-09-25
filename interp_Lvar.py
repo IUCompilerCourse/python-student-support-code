@@ -10,13 +10,12 @@ class InterpLvar(InterpLint):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmt(self, s, env, cont):
+  def interp_stmt(self, s, env):
     match s:
       case Assign([lhs], value):
         env[lhs.id] = self.interp_exp(value, env)
-        return self.interp_stmts(cont, env)
       case _:
-        return super().interp_stmt(s, env, cont)
+        super().interp_stmt(s, env)
         
   def interp(self, p):
     match p:

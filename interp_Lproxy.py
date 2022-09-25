@@ -87,13 +87,12 @@ class InterpLproxy(InterpLcast):
       case _:
         return super().interp_exp(e, env)
     
-  def interp_stmt(self, s, env, cont):
+  def interp_stmt(self, s, env):
     match s:
       case Assign([Call(Name('any_load'), [tup, index])], value):
         t = self.interp_exp(tup, env)
         i = self.interp_exp(index, env)
         v = self.interp_exp(value, env)
         self.interp_setitem(t, i, v)
-        return self.interp_stmts(cont, env)
       case _:
-        return super().interp_stmt(s, env, cont)
+        return super().interp_stmt(s, env)

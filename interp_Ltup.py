@@ -31,17 +31,16 @@ class InterpLtup(InterpLwhile):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmt(self, s, env, cont):
+  def interp_stmt(self, s, env):
     match s:
       case Collect(size):
-        return self.interp_stmts(cont, env)
+        pass
       case Assign([Subscript(tup, index)], value):
         tup = self.interp_exp(tup, env)
         index = self.interp_exp(index, env)
         tup[index] = self.interp_exp(value, env)
-        return self.interp_stmts(cont, env)
       case _:
-        return super().interp_stmt(s, env, cont)
+        super().interp_stmt(s, env)
     
 if __name__ == "__main__":
   t1 = Tuple([Constant(1), Constant(2)], Load())
