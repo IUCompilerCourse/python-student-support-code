@@ -56,7 +56,6 @@ class InterpLfun(InterpLarray):
       case Module(ss):
         env = {}
         self.interp_stmts(ss, env)
-        #trace('interp global env: ' + repr(env))
         if 'main' in env.keys():
             self.apply_fun(env['main'], [], None)
       case _:

@@ -32,13 +32,13 @@ class InterpCfun(InterpCarray):
       case _:
         return super().interp_exp(e, env)
 
-  def interp_stmt(self, s, env, cont):
+  def interp_tail(self, s, env):
     match s:
       case TailCall(func, args):
         return self.interp_exp(Call(func, args), env)
       case _:
-        return super().interp_stmt(s, env, cont)
-    
+        return super().interp_tail(s, env)
+      
   def interp(self, p):
     match p:
       case CProgramDefs(defs):

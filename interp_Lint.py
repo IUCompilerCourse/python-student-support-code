@@ -67,10 +67,11 @@ class InterpLint:
         raise Exception('error in interp_stmt, unexpected ' + repr(s))
     
   def interp_stmts(self, ss, env):
-    if len(ss) == 0:
-      return None
-    else:
-      return self.interp_stmt(ss[0], env, ss[1:])
+    match ss:
+      case []:
+        return 0
+      case [s, *ss]:
+        return self.interp_stmt(s, env, ss)
 
   def interp(self, p):
     match p:
