@@ -10,7 +10,7 @@ class InterpLarray(InterpLtup):
         return [self.interp_exp(e, env) for e in es]
       case BinOp(left, Mult(), right):
           l = self.interp_exp(left, env); r = self.interp_exp(right, env)
-          return l * r
+          return mul64(l, r)
       case Subscript(tup, index, Load()):
         t = self.interp_exp(tup, env)
         n = self.interp_exp(index, env)

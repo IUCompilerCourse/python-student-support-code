@@ -113,7 +113,7 @@ class TypeCheckCif:
       case Return(value):
         value_t = self.type_check_exp(value, env)
       case _:
-        raise Exception('error in type_check_stmt, unexpected' + repr(s))
+        raise Exception('error in type_check_stmt, unexpected ' + repr(s))
     
   def type_check(self, p):
     match p:
