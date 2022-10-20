@@ -150,9 +150,16 @@ class X86Emulator:
 
     def eval_imm(self, e) -> int:
         if e.data == 'int_a':
-            return int(e.children[0])
-        elif e.data == 'neg_a':
-            return -self.eval_imm(e.children[0])
+           v = int(e.children[0])
+           if is_int64(v):
+               return v
+           else: 
+               raise Exception('eval_imm: invalid immediate:', v)
+             
+        # if e.data == 'int_a':
+        #     return int(e.children[0])
+        # elif e.data == 'neg_a':
+        #     return -self.eval_imm(e.children[0])
         else:
             raise Exception('eval_imm: unknown immediate:', e)
 
@@ -162,12 +169,17 @@ class X86Emulator:
             return self.registers[str(a.children[0])]
         elif a.data == 'var_a':
             return self.variables[str(a.children[0])]
-        elif a.data == 'int_a' or a.data == 'neg_a':
+        # elif a.data == 'int_a' or a.data == 'neg_a':
+        #     return self.eval_imm(a)
+        elif a.data == 'int_a':
             return self.eval_imm(a)
+        elif a.data == 'neg_a':
+            return neg64(self.eval_imm(a.children[0]))
         elif a.data == 'mem_a':
             offset, reg = a.children
             addr = self.registers[reg]
-            offset_addr = addr + self.eval_imm(offset)
+            offset_addr = add64(addr,self.eval_imm(offset))
+            # offset_addr = addr + self.eval_imm(offset)
             return self.memory[offset_addr]
         elif a.data == 'global_val_a':
             loc, reg = a.children
@@ -184,7 +196,8 @@ class X86Emulator:
         elif a.data == 'mem_a':
             offset, reg = a.children
             addr = self.registers[reg]
-            offset_addr = addr + self.eval_imm(offset)
+            #offset_addr = addr + self.eval_imm(offset)
+            offset_addr = add64(addr,self.eval_imm(offset))
             self.memory[offset_addr] = v
         elif a.data == 'direct_mem_a':
             reg = a.children[0]
@@ -227,24 +240,24 @@ class X86Emulator:
                 a1, a2 = instr.children
                 v1 = self.eval_arg(a1)
                 v2 = self.eval_arg(a2)
-                self.store_arg(a2, v1 + v2)
+                self.store_arg(a2, add64(v1, v2))
 
             elif instr.data == 'subq':
                 a1, a2 = instr.children
                 v1 = self.eval_arg(a1)
                 v2 = self.eval_arg(a2)
-                self.store_arg(a2, v2 - v1)
+                self.store_arg(a2, sub64(v2, v1))
 
             elif instr.data == 'xorq':
                 a1, a2 = instr.children
                 v1 = self.eval_arg(a1)
                 v2 = self.eval_arg(a2)
-                self.store_arg(a2, v1 ^ v2)
+                self.store_arg(a2, xor64(v1, v2))
 
             elif instr.data == 'negq':
                 a1 = instr.children[0]
                 v1 = self.eval_arg(a1)
-                self.store_arg(a1, (- v1))
+                self.store_arg(a1, neg64(v1))
 
             elif instr.data in ['jmp', 'je', 'jne', 'jl', 'jle', 'jg', 'jge']:
                 target = str(instr.children[0])
@@ -307,7 +320,7 @@ class X86Emulator:
                         print(self.print_state())
 
                 elif target == label_name('read_int'):
-                    self.registers['rax'] = int(input())
+                    self.registers['rax'] = input_int()
                     self.log(f'CALL TO read_int: {self.registers["rax"]}')
                     if self.logging:
                         print(self.print_state())

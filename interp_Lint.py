@@ -1,20 +1,20 @@
 from ast import *
-from utils import input_int
+from utils import input_int, add64, sub64, neg64
 
 def interp_exp(e):
     match e:
         case BinOp(left, Add(), right):
             l = interp_exp(left); r = interp_exp(right)
-            return l + r
+            return add64(l, r)
         case BinOp(left, Sub(), right):
             l = interp_exp(left); r = interp_exp(right)
-            return l - r
+            return sub64(l, r)
         case UnaryOp(USub(), v):
-            return - interp_exp(v)
+            return neg64(interp_exp(v))
         case Constant(value):
             return value
         case Call(Name('input_int'), []):
-            return int(input())
+            return input_int()
         case _:
             raise Exception('error in interp_exp, unexpected ' + repr(e))
 
@@ -37,16 +37,16 @@ class InterpLint:
     match e:
       case BinOp(left, Add(), right):
         l = self.interp_exp(left, env); r = self.interp_exp(right, env)
-        return l + r
+        return add64(l, r)
       case BinOp(left, Sub(), right):
         l = self.interp_exp(left, env); r = self.interp_exp(right, env)
-        return l - r
+        return sub64(l, r)
       case UnaryOp(USub(), v):
-        return - self.interp_exp(v, env)
+        return neg64(self.interp_exp(v, env))
       case Constant(value):
         return value
       case Call(Name('input_int'), []):
-        return int(input())
+        return input_int()
       case _:
         raise Exception('error in interp_exp, unexpected ' + repr(e))
 

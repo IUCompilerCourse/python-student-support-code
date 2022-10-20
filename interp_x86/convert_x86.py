@@ -9,10 +9,11 @@ from x86_ast import *
 
 
 def convert_int(value):
-    if value >= 0:
-        return Tree("int_a", [value])
-    else:
-        return Tree("neg_a", [Tree("int_a", [-value])])
+    return Tree("int_a", [value])    
+    # if value >= 0:
+    #     return Tree("int_a", [value])
+    # else:
+    #     return Tree("neg_a", [Tree("int_a", [-value])])
 
 def convert_arg(arg):
     match arg:
