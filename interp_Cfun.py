@@ -13,7 +13,7 @@ class InterpCfun(InterpCarray):
           new_env = {x: v for (x,v) in env.items()}
           for (x,arg) in zip(xs, args):
               new_env[x] = arg
-          ret = self.interp_stmts(blocks[label_name(name + 'start')], new_env)
+          ret = self.interp_stmts(blocks[label_name(name + '_start')], new_env)
           self.blocks = old_blocks
           return ret
         case _:
