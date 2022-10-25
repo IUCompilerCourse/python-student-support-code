@@ -345,7 +345,8 @@ IfExp.__str__ = str_IfExp
 
 
 def repr_IfExp(self):
-    return 'IfExp(' + repr(self.body) + ', ' + repr(self.test) + ', ' + repr(self.orelse) + ')'
+    return 'IfExp(' + repr(self.test) + ', ' + repr(self.body) + \
+        ', ' + repr(self.orelse) + ')'
 
 
 IfExp.__repr__ = repr_IfExp
