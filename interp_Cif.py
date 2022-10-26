@@ -32,4 +32,4 @@ class InterpCif(InterpLif):
           case False:
             return self.interp_stmts(self.blocks[els], env)
       case _:
-        return super().interp_tail(s, env)
+        raise Exception('interp_tail: unexpected ' + repr(s))
