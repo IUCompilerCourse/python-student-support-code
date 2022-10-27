@@ -754,7 +754,7 @@ class Begin(expr):
         stmts = ''.join([str(s) for s in self.body])
         end = indent_stmt() + str(self.result)
         dedent()
-        return '{\n' + stmts + end + '}'
+        return 'begin:\n' + stmts + end
 
 
 @dataclass
