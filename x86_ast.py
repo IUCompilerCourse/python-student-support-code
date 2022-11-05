@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-from typing import List
+from typing import Iterable
 
 from utils import dedent, indent, indent_stmt, label_name
 
 
-@dataclass(frozen=True)
+@dataclass
 class X86Program:
     body: dict[str, list[instr]] | list[instr]
 
@@ -31,7 +31,7 @@ class X86Program:
         result += '\n'
         return result
 
-@dataclass(frozen=True)
+@dataclass
 class X86ProgramDefs:
     defs: list[ast.FunctionDef]
 
@@ -42,10 +42,15 @@ class instr: ...
 class arg: ...
 class location(arg): ...
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Instr(instr):
     instr: str
-    args: List[arg]
+    args: tuple[arg, ...]
+
+    def __init__(self, name: str, args: Iterable[arg]):
+        # https://docs.python.org/3/library/dataclasses.html#frozen-instances
+        object.__setattr__(self, 'instr', name)
+        object.__setattr__(self, 'args', tuple(args))
 
     def source(self):
         return self.args[0]
@@ -54,7 +59,7 @@ class Instr(instr):
     def __str__(self):
         return indent_stmt() + self.instr + ' ' + ', '.join(str(a) for a in self.args) + '\n'
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Callq(instr):
     func: str
     num_args: int
@@ -62,7 +67,7 @@ class Callq(instr):
     def __str__(self):
         return indent_stmt() + 'callq' + ' ' + self.func + '\n'
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class IndirectCallq(instr):
     func: arg
     num_args: int
@@ -70,7 +75,7 @@ class IndirectCallq(instr):
     def __str__(self):
         return indent_stmt() + 'callq' + ' *' + str(self.func) + '\n'
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class JumpIf(instr):
     cc: str
     label: str
@@ -78,21 +83,21 @@ class JumpIf(instr):
     def __str__(self):
         return indent_stmt() + 'j' + self.cc + ' ' + self.label + '\n'
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Jump(instr):
     label: str
 
     def __str__(self):
         return indent_stmt() + 'jmp ' + self.label + '\n'
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class IndirectJump(instr):
     target: location
 
     def __str__(self):
         return indent_stmt() + 'jmp *' + str(self.target) + '\n'
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class TailJump(instr):
     func: arg
     arity: int
