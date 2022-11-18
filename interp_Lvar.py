@@ -33,4 +33,4 @@ if __name__ == "__main__":
   pr = Expr(Call(Name('print'), [ast1_1]))
   p = Module([pr])
   interp = InterpLvar()
-  interp.interp_Lvar(p)
+  interp.interp(p)
