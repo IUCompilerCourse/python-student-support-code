@@ -289,7 +289,7 @@ Not.__repr__ = repr_Not
 
 
 def str_UnaryOp(self):
-    return str(self.op) + str(self.operand)
+    return str(self.op) + ' ' + str(self.operand)
 
 
 UnaryOp.__str__ = str_UnaryOp
@@ -467,6 +467,20 @@ def repr_GtE(self):
 
 
 GtE.__repr__ = repr_GtE
+
+
+def str_Is(self):
+    return 'is'
+
+
+Is.__str__ = str_Is
+
+
+def repr_Is(self):
+    return 'Is()'
+
+
+Is.__repr__ = repr_Is
 
 
 def str_Tuple(self):
@@ -863,7 +877,7 @@ class Closure(expr):
     __match_args__ = ("arity", "args")
 
     def __str__(self):
-        return 'closure[' + repr(self.arity) + '](' + ', '.join([str(e) for e in self.args]) + ')'
+        return 'closure{' + repr(self.arity) + '}(' + ', '.join([str(e) for e in self.args]) + ')'
 
 
 @dataclass

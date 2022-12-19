@@ -22,6 +22,11 @@ class TypeCheckCtup(TypeCheckCwhile):
   
   def type_check_exp(self, e, env):
     match e:
+        case Compare(left, [cmp], [right]) if isinstance(cmp, Is):
+          l = self.type_check_exp(left, env)
+          r = self.type_check_exp(right, env)
+          self.check_type_equal(l, r, e)
+          return BoolType()
         case Allocate(length, typ):
           return typ
         case GlobalValue(name):

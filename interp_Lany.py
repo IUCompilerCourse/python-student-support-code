@@ -21,7 +21,7 @@ class InterpLany(InterpLlambda):
         case IntType():
           return 'int'
         case BoolType():
-          return 'int'
+          return 'bool'
         case _:
           raise Exception('type_to_tag unexpected ' + repr(typ))
 

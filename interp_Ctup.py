@@ -4,6 +4,13 @@ from utils import *
 
 class InterpCtup(InterpCif):
 
+  def interp_cmp(self, cmp):
+    match cmp:
+      case Is():
+        return lambda x, y: x is y
+      case _:
+        return super().interp_cmp(cmp)
+      
   def interp_exp(self, e, env):
     match e:
       case Tuple(es, Load()):
