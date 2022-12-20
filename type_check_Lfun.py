@@ -99,7 +99,10 @@ class TypeCheckLfun(TypeCheckLarray):
         else:
             new_params = params
             new_returns = returns
-        for (x,t) in new_params:
+        unique_names = {x for x,_ in new_params}             
+        if len(unique_names) != len(new_params):
+            raise Exception('type_check: duplicate parameter name in function ' + repr(name))
+        for x,t in new_params:
             new_env[x] = t
         rt = self.type_check_stmts(body, new_env)
         self.check_type_equal(new_returns, rt, ss[0])
@@ -121,6 +124,8 @@ class TypeCheckLfun(TypeCheckLarray):
                                 for p in params.args]
                 else:
                     params_t = [t for (x,t) in params]
+                if name in env:
+                    raise Exception('type_check: duplicate function name ' + name)
                 env[name] = FunctionType(params_t, self.parse_type_annot(returns))
         self.type_check_stmts(body, env)
       case _:
