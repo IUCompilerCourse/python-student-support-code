@@ -33,7 +33,9 @@ static const int TAG_VEC_PTR_BITFIELD_RSHIFT = 7;
 
 static const int TAG_VECOF_LENGTH_RSHIFT = 2;
 static const int TAG_VECOF_PTR_BITFIELD_RSHIFT = 1;
-static const int TAG_VECOF_RSHIFT = 63;
+static const int TAG_VECOF_RSHIFT = 62;
+
+static const int TAG_ISPROXY_RSHIFT = 63;
 
 // cheney implements cheney's copying collection algorithm
 // There is a stub and explaination below.
@@ -46,7 +48,7 @@ static inline int is_forwarding(int64_t tag) {
 }
 
 static inline int is_vecof(int64_t tag) {
-  return (tag >> TAG_VECOF_RSHIFT);
+  return 1 & (tag >> TAG_VECOF_RSHIFT);
 }
 
 // Get the length field out of a vector's tag.
@@ -62,15 +64,15 @@ static inline int64_t get_vec_ptr_bitfield(int64_t tag){
 
 // Get the length field out of a vectorof's tag.
 static inline int get_vecof_length(int64_t tag){
-  return ((tag << 1) >> 1) >> TAG_VECOF_LENGTH_RSHIFT;
+  return ((tag << 2) >> 2) >> TAG_VECOF_LENGTH_RSHIFT;
 }
 
 // Get the "is pointer bitfield" out of a vectorof's tag.
 static inline int64_t get_vecof_ptr_bitfield(int64_t tag){
-  return (tag >> TAG_VECOF_PTR_BITFIELD_RSHIFT) & 1;
+  return 1 & (tag >> TAG_VECOF_PTR_BITFIELD_RSHIFT);
 }
 
-static inline int get_vec_length(int64_t tag){
+int get_vec_length(int64_t tag){
   if (is_vecof(tag))
     return get_vecof_length(tag);
   else
@@ -727,7 +729,7 @@ int64_t apply_closure(int64_t* clos, int64_t arg) {
 
 int is_vector_proxy(int64_t* vec) {
   int64_t tag = vec[0];
-  return (1 && (tag >> 57)) == 1;
+  return (1 & (tag >> TAG_ISPROXY_RSHIFT)) == 1;
 }
 
 int64_t proxy_vector_length(int64_t* vec) {
@@ -763,3 +765,61 @@ int64_t proxy_vector_set(int64_t* vec, int i, int64_t arg) {
 }
 
 
+int64_t proxy_vecof_ref(int64_t* vec, int i);
+int64_t proxy_vecof_set(int64_t* vec, int i, int64_t arg);
+int64_t proxy_vecof_length(int64_t* vec);
+
+int64_t proxy_vecof_length(int64_t* vec) {
+  if (is_vector_proxy(vec)) {
+    int64_t vec2 = vec[1];
+    return proxy_vecof_length((int64_t*) vec2);
+  } else {
+    return get_vecof_length(vec[0]);
+  }
+}
+
+int64_t proxy_vecof_ref(int64_t* vec, int i) {
+  if (is_vector_proxy(vec)) {
+    int64_t vec2 = vec[1];
+    int64_t val = proxy_vecof_ref((int64_t*) vec2, i);
+    int64_t* rd = (int64_t*) vec[2];
+    return apply_closure(rd, val);
+  } else {
+    return vec[i+1];
+  }
+}
+
+int64_t proxy_vecof_set(int64_t* vec, int i, int64_t arg) {
+  if (is_vector_proxy(vec)) {
+    int64_t vec2 = vec[1];
+    int64_t* wr = (int64_t*) vec[3];
+    int64_t arg2 = apply_closure(wr, arg);
+    return proxy_vecof_set((int64_t*) vec2, i, arg2);
+  } else {
+    vec[i+1] = arg;
+    return 0;
+  }
+}
+
+int64_t proxy_vec_length(int64_t* vec) {
+  if (is_vecof(vec[0]))
+    return proxy_vecof_length(vec);
+  else
+    return proxy_vector_length(vec);
+}
+
+int64_t proxy_vec_ref(int64_t* vec, int i) {
+  if (is_vecof(vec[0]))
+    return proxy_vecof_ref(vec, i);
+  else
+    return proxy_vector_ref(vec, i);
+}
+
+int64_t proxy_vec_set(int64_t* vec, int i, int64_t arg) {
+  if (is_vecof(vec[0]))
+    return proxy_vecof_set(vec, i, arg);
+  else {
+    return proxy_vector_set(vec, i, arg);
+  }
+    
+}
