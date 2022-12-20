@@ -179,7 +179,7 @@ void validate_vector(int64_t** scan_addr) {
 void collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
 {
 #if 0
-  printf("collecting, need %ld\n", bytes_requested);
+  printf("collecting, need %" PRIu64 "\n", bytes_requested);
   print_heap(rootstack_ptr);
 #endif
 
@@ -245,7 +245,7 @@ void collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
     free(tospace_begin);
 
     if (!(tospace_begin = malloc(new_bytes))) {
-      printf("failed to malloc %ld byte fromspace", new_bytes);
+      printf("failed to malloc %lu byte fromspace", new_bytes);
       exit(EXIT_FAILURE);
     }
 
@@ -263,7 +263,7 @@ void collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
     free(tospace_begin);
 
     if (!(tospace_begin = malloc(new_bytes))) {
-      printf("failed to malloc %ld byte tospace", new_bytes);
+      printf("failed to malloc %lu byte tospace", new_bytes);
       exit(EXIT_FAILURE);
     }
 
@@ -282,12 +282,12 @@ void collect(int64_t** rootstack_ptr, uint64_t bytes_requested)
     }
   }
   // All pointers in fromspace point to fromspace
-  /*printf("validating pointers in fromspace [%lld, %lld)\n",
-    (int64_t)fromspace_begin, (int64_t)fromspace_end);*/
+  /*printf("validating pointers in fromspace [%p, %p)\n",
+    fromspace_begin, fromspace_end);*/
   int64_t* scan_ptr = fromspace_begin;
   while (scan_ptr != free_ptr){
     validate_vector(&scan_ptr);
-#if 0
+#if 0 // this sanity test appears to be broken
     int64_t tag = *scan_ptr;
     unsigned char len = get_vector_length(tag);
     int64_t isPtrBits = get_vec_ptr_bitfield(tag);
@@ -536,7 +536,7 @@ void copy_vector(int64_t** vector_ptr_loc)
     return;
   old_vector_ptr = to_ptr(old_vector_ptr);
 #if 0
-  printf("copy_vector %ll\n", (int64_t)old_vector_ptr);
+  printf("copy_vector %p\n", old_vector_ptr);
 #endif
 
   int64_t tag = old_vector_ptr[0];
@@ -545,7 +545,9 @@ void copy_vector(int64_t** vector_ptr_loc)
   //  would have left a forwarding pointer.
 
   if (is_forwarding(tag)) {
-    //printf("\talready copied to %lld\n", tag);
+#if 0
+    printf("\talready copied to %p\n", (int64_t*) tag);
+#endif
     // Since we left a forwarding pointer, we have already
     // moved this vector. All we need to do is update the pointer
     // that was pointing to the old vector. The
@@ -564,7 +566,7 @@ void copy_vector(int64_t** vector_ptr_loc)
     // The new vector is going to be where the free_ptr currently points.
     int64_t* new_vector_ptr = free_ptr;
 #if 0
-      printf("\tto address: %ld\n", (int64_t)new_vector_ptr);
+      printf("\tto address: %p\n", new_vector_ptr);
 #endif
       
     // The tag we grabbed earlier contains some usefull info for
@@ -680,7 +682,7 @@ void print_heap(int64_t** rootstack_ptr)
     if (is_ptr(*root_loc)) {
       print_vector(to_ptr(*root_loc));
     } else {
-      printf("%lld", (int64_t)*root_loc);
+      printf("%" PRId64, (int64_t)*root_loc);
     }
     printf("\n");
   }
@@ -697,7 +699,7 @@ void print_vector(int64_t* vector_ptr)
     int64_t* scan_ptr = vector_ptr;
     int64_t* next_ptr = vector_ptr + len + 1;
 
-    printf("%lld=#(", (int64_t)vector_ptr);
+    printf("%p=#(", vector_ptr);
     scan_ptr += 1;
     int64_t isPointerBits = get_vec_ptr_bitfield(tag);
     while (scan_ptr != next_ptr) {
