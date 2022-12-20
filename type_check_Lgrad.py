@@ -58,6 +58,8 @@ class TypeCheckLgrad(TypeCheckLlambda):
     match e:
       case Constant(value) if value is True or value is False:
         return BoolType()
+      case Constant(None):
+        return VoidType()
       # Cases for Lvar
       case Name(id):
         return env[id]
