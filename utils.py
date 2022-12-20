@@ -289,7 +289,7 @@ Not.__repr__ = repr_Not
 
 
 def str_UnaryOp(self):
-    return str(self.op) + ' ' + str(self.operand)
+    return str(self.op) + '(' + str(self.operand) + ')'
 
 
 UnaryOp.__str__ = str_UnaryOp
@@ -766,9 +766,9 @@ class Begin(expr):
     def __str__(self):
         indent()
         stmts = ''.join([str(s) for s in self.body])
-        end = indent_stmt() + str(self.result)
+        end = indent_stmt() + + 'produce ' + str(self.result)
         dedent()
-        return 'begin:\n' + stmts + end
+        return '{\n' + stmts + end + '}'
 
 
 @dataclass
