@@ -1194,9 +1194,9 @@ def compile_and_test(compiler, program_filename):
     trace(program)
     trace('')
 
-    if 'source' in compiler.type_check_dict.keys():
+    if 'source' in compiler.typecheck_dict.keys():
         trace('\n# type checking source program\n')
-        compiler.type_check_dict['source'](program)
+        compiler.typecheck_dict['source'](program)
 
     passes = compiler.passes()
     for passname, passfn in passes:
