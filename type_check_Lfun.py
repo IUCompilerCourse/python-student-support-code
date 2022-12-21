@@ -81,6 +81,8 @@ class TypeCheckLfun(TypeCheckLarray):
           case _:
             raise Exception('type_check_exp: in call, unexpected ' + \
                             repr(func_t))
+      case Constant(None):
+        return VoidType()
       case _:
         return super().type_check_exp(e, env)
 
