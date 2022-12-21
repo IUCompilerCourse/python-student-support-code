@@ -21,7 +21,5 @@ for opt,arg  in opts:
     if opt == '-e':
         enable_emulation()
         
-run_selected_tests(files,
-                   var.Var(), 'var',
-                   var.type_check_dict, var.interp_dict) 
+run_selected_tests(files, compiler.Compiler())
 
