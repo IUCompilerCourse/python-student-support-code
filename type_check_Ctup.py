@@ -19,6 +19,13 @@ class TypeCheckCtup(TypeCheckCwhile):
                       + ' in ' + repr(e))
       case _:
         super().check_type_equal(t1, t2, e)
+
+  def type_check_atm(self, e, env):
+    match e:
+      case GlobalValue(name):
+        return IntType()
+      case _:
+        return super().type_check_atm(e, env)
   
   def type_check_exp(self, e, env):
     match e:
@@ -29,8 +36,6 @@ class TypeCheckCtup(TypeCheckCwhile):
           return BoolType()
         case Allocate(length, typ):
           return typ
-        case GlobalValue(name):
-          return IntType()
         case Subscript(tup, Constant(index), Load()):
           tup_t = self.type_check_atm(tup, env)
           match tup_t:
