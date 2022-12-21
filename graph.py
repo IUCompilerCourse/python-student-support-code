@@ -20,6 +20,8 @@ class Edge:
     def __eq__(self, other):
         return self.raw() == other.raw()
 
+Vertex = any
+
 ################################################################################
 # Directed Adjacency List
 ################################################################################
@@ -181,7 +183,7 @@ class UndirectedAdjList(DirectedAdjList):
 # Topological Sort
 ################################################################################
 
-def topological_sort(G: DirectedAdjList) -> DirectedAdjList:
+def topological_sort(G: DirectedAdjList) -> [Vertex]:
     in_degree = {u: 0 for u in G.vertices()}
     for e in G.edges():
         in_degree[e.target] += 1
@@ -201,6 +203,8 @@ def topological_sort(G: DirectedAdjList) -> DirectedAdjList:
 
 def transpose(G: DirectedAdjList) -> DirectedAdjList:
     G_t = DirectedAdjList()
+    for v in G.vertices():
+        G_t.add_vertex(v)
     for e in G.edges():
         G_t.add_edge(e.target, e.source)
     return G_t
