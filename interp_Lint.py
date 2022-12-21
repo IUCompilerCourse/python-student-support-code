@@ -24,12 +24,16 @@ def interp_stmt(s):
             print(interp_exp(arg))
         case Expr(value):
             interp_exp(value)
+        case _:
+            raise Exception('error in interp_stmt, unexpected ' + repr(s))
 
 def interp(p):
     match p:
         case Module(body):
             for s in body:
                 interp_stmt(s)
+        case _:
+            raise Exception('error in interp, unexpected ' + repr(p))
 
 # This version is for InterpLvar to inherit from 
 class InterpLint:
@@ -77,6 +81,8 @@ class InterpLint:
     match p:
       case Module(body):
         self.interp_stmts(body, {})
+      case _:
+        raise Exception('error in interp, unexpected ' + repr(p))
     
 if __name__ == "__main__":
   eight = Constant(8)
