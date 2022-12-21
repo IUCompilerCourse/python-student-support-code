@@ -19,7 +19,7 @@ class TypeCheckLlambda(TypeCheckLfun):
       case Closure(arity, es):
         ts = [self.type_check_exp(e, env) for e in es]
         e.has_type = TupleType(ts)
-        return e.has_type
+        return e.has_type  # this is just wrong: closure values with different shapes must be given compatible types
       case Lambda(params, body):
         raise Exception('cannot synthesize a type for lambda: ' + str(e))
       case AllocateClosure(length, typ, arity):

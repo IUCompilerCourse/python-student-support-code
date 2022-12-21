@@ -57,7 +57,7 @@ class TypeCheckCtup(TypeCheckCwhile):
       case Collect(size):
         pass
       case Assign([Subscript(tup, Constant(index), Store())], value):
-        tup_t = self.type_check_atm(tup, env)
+        tup_t = self.type_check_exp(tup, env)
         value_t = self.type_check_atm(value, env)
         match tup_t:
           case TupleType(ts):

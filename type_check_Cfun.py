@@ -31,7 +31,11 @@ class TypeCheckCfun(TypeCheckCarray):
         return super().type_check_exp(e, env)      
       case Call(Name('len'), [tup]):
         return super().type_check_exp(e, env)      
-      case Call(Name('array_len'), [tup]):
+      case Call(Name('array_len'), _):
+        return super().type_check_exp(e, env)      
+      case Call(Name('array_store'), _):
+        return super().type_check_exp(e, env)      
+      case Call(Name('array_load'), _):
         return super().type_check_exp(e, env)      
       case Call(func, args):
         func_t = self.type_check_exp(func, env)
@@ -49,6 +53,15 @@ class TypeCheckCfun(TypeCheckCarray):
       case _:
         return super().type_check_exp(e, env)
 
+  def type_check_tail(self, s, env):
+    match s:
+      case Return(value):
+        return self.type_check_exp(value, env)
+      case TailCall(func, args):
+        return self.type_check_exp(Call(func, args), env)
+      case _:
+        super().type_check_tail(s, env)
+
   def type_check_def(self, d, env):
     match d:
       case FunctionDef(name, params, blocks, dl, returns, comment):
@@ -58,26 +71,24 @@ class TypeCheckCfun(TypeCheckCarray):
         while True:
             old_env = copy.deepcopy(new_env)
             for (l,ss) in blocks.items():
-                self.type_check_stmts(ss, new_env)
+                self.type_check_stmts(ss[:-1], new_env)
+                if len(ss) > 0:  # blocks should only be empty if they are unreachable, but we don't check this 
+                    t = self.type_check_tail(ss[-1], new_env)
+                    if t != None:  # block ended in Return with this type
+                       self.check_type_equal(returns,t,ss[-1])
             # trace('type_check_Cfun iterating ' + repr(new_env))
             if new_env == old_env:
                 break
-        # todo check return type
+        # following is too strong, because in some variants unused variables may never get assigned a type              
+        # undefs = [x for x,t in new_env.items() if t == Bottom()]
+        # if undefs:
+        #    raise Exception('type_check_def: undefined type for ' + str(undefs)) 
         d.var_types = new_env
         # trace('type_check_Cfun var_types for ' + name)
         # trace(d.var_types)
       case _:
         raise Exception('type_check_def: unexpected ' + repr(d))
 
-  def type_check_stmt(self, s, env):
-    match s:
-      case Return(value):
-        self.type_check_exp(value, env)
-      case TailCall(func, args):
-        self.type_check_exp(Call(func, args), env)
-      case _:
-        super().type_check_stmt(s, env)
-    
   def type_check(self, p):
     match p:
       case CProgramDefs(defs):
