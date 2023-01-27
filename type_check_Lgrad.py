@@ -171,6 +171,45 @@ class TypeCheckLgrad(TypeCheckLlambda):
         e.has_type = ListType(elt_ty)
         return e.has_type
 
+      case Call(Name('array_len'), [tup]):
+        tup_t = self.type_check_exp(tup, env)
+        tup.has_type = tup_t
+        match tup_t:
+          case ListType(ty):
+            return IntType()
+          case Bottom():
+            return Bottom()
+          case AnyType():
+            return IntType()
+          case _:
+            raise Exception('array_len: unexpected ' + repr(tup_t))
+      case Call(Name('array_load'), [lst, index]):
+        lst_ty = self.type_check_exp(lst, env)
+        index_ty = self.type_check_exp(index, env)
+        self.check_consistent(index_ty, IntType(), index)
+        match lst_ty:
+          case ListType(ty):
+            return ty
+          case AnyType():
+            return AnyType()
+          case _:
+            raise Exception('array_load: unexpected ' + repr(lst_ty))
+      case Call(Name('array_store'), [tup, index, value]):
+        tup_t = self.type_check_exp(tup, env)
+        value_t = self.type_check_exp(value, env)
+        index_ty = self.type_check_exp(index, env)
+        self.check_consistent(index_ty, IntType(), index)
+        match tup_t:
+          case ListType(ty):
+            self.check_consistent(ty, value_t, e)
+            return VoidType()
+          case Bottom():
+            return VoidType()
+          case AnyType():
+            return VoidType()
+          case _:
+            raise Exception('type_check_exp: unexpected ' + repr(tup_t))
+      
       # Cases for Llambda
       case Lambda(params, body):
         self.check_exp(e, AnyType(), env)
@@ -185,18 +224,35 @@ class TypeCheckLgrad(TypeCheckLlambda):
           case _:
             raise Exception('type_check_exp: in arity, unexpected ' + \
                             repr(func_t))
+          
+      # primitives introduced by the resolve pass
+      case Call(Name('any_load'), [tup, index]):
+        self.check_exp(tup, AnyType(), env)
+        self.check_exp(index, IntType(), env)
+        return AnyType()
+      case Call(Name('any_store'), [tup, index, value]):
+        self.check_exp(tup, AnyType(), env)
+        self.type_check_exp(value, env)
+        self.check_exp(index, IntType(), env)
+        return VoidType()
+      case Call(Name('any_len'), [tup]):
+        self.check_exp(tup, AnyType(), env)
+        return IntType()
+      
       # Cases for Lfun (last because the below Call pattern is general)
       case FunRef(id, arity):
         return env[id]
       case Call(func, args):
         func_t = self.type_check_exp(func, env)
-        args_t = [self.type_check_exp(arg, env) for arg in args]
         match func_t:
           case FunctionType(params_t, return_t):
-            for (arg_t, param_t) in zip(args_t, params_t):
-                self.check_consistent(param_t, arg_t, e)
+            for (arg, param_t) in zip(args, params_t):
+                self.check_exp(arg, param_t, env)
+            # for (arg_t, param_t) in zip(args_t, params_t):
+            #     self.check_consistent(param_t, arg_t, e)
             return return_t
           case AnyType():
+            args_t = [self.type_check_exp(arg, env) for arg in args]
             anys = [AnyType() for _ in args_t]
             fun_ty = FunctionType(anys, AnyType())
             return AnyType()
@@ -209,6 +265,7 @@ class TypeCheckLgrad(TypeCheckLlambda):
   def check_exp(self, e, ty, env):
     match e:
       case Lambda(params, body):
+        trace('check_exp: ' + str(e) + '\nexpected type: ' + str(ty))
         if isinstance(params, ast.arguments):
           new_params = [a.arg for a in params.args]
           e.args = new_params

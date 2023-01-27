@@ -747,6 +747,11 @@ class AllocateClosure(expr):
         return 'alloc_clos(' + str(self.length) + ',' + str(self.ty) \
                + ',' + str(self.arity) + ')'
 
+@dataclass
+class UncheckedCast(expr):
+    exp: expr
+    ty: Type
+    __match_args__ = ("exp","ty")
 
 @dataclass
 class Collect(stmt):
@@ -766,7 +771,7 @@ class Begin(expr):
     def __str__(self):
         indent()
         stmts = ''.join([str(s) for s in self.body])
-        end = indent_stmt() + + 'produce ' + str(self.result)
+        end = indent_stmt() + 'produce ' + str(self.result)
         dedent()
         return '{\n' + stmts + end + '}'
 
@@ -877,7 +882,11 @@ class Closure(expr):
     __match_args__ = ("arity", "args")
 
     def __str__(self):
-        return 'closure{' + repr(self.arity) + '}(' + ', '.join([str(e) for e in self.args]) + ')'
+        if hasattr(self, 'has_type'):
+            typ = ':' + str(self.has_type)
+        else:
+            typ = ''
+        return 'closure{' + repr(self.arity) + '}(' + ', '.join([str(e) for e in self.args]) + ')' + typ
 
 
 @dataclass

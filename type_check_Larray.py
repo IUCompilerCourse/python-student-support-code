@@ -85,7 +85,7 @@ class TypeCheckLarray(TypeCheckLtup):
           case Bottom():
             return VoidType()
           case _:
-            raise Exception('type_check_stmts: unexpected ' + repr(tup_t))
+            raise Exception('type_check_exp: unexpected ' + repr(tup_t))
       case BinOp(left, Mult(), right):
         l = self.type_check_exp(left, env)
         self.check_type_equal(l, IntType(), left)
@@ -111,7 +111,11 @@ class TypeCheckLarray(TypeCheckLtup):
           case TupleType(ts):
             match index:
               case Constant(i):
-                self.check_type_equal(ts[i], value_t, ss[0])
+                if 0 <= i and i < len(ts):
+                  self.check_type_equal(ts[i], value_t, ss[0])
+                else:
+                  raise Exception('subscript ' + str(i) + ' not in range of '
+                                  + str(tup_t) + ' in\n' + str(ss[0]))
               case _:
                 raise Exception('subscript required constant integer index')
           case ListType(ty):

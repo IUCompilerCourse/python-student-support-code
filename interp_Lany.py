@@ -50,6 +50,8 @@ class InterpLany(InterpLlambda):
     match e:
       case Inject(value, typ):
         v = self.interp_exp(value, env)
+        if isinstance(value, Tagged):
+          raise Exception('cannot inject a value that is already tagged')
         return Tagged(v, self.type_to_tag(typ))
       case Project(value, typ):
         v = self.interp_exp(value, env)
@@ -58,7 +60,7 @@ class InterpLany(InterpLlambda):
             return val
           case _:
             raise Exception('interp project to ' + repr(typ) \
-                            + '  unexpected ' + repr(v))
+                            + '  unexpected ' + repr(v) + '\nin\n' + str(e))
       case Call(Name(atl), [tup, index]) \
           if atl == 'any_load' or atl == 'any_load_unsafe':
         tv = self.interp_exp(tup, env)
@@ -93,6 +95,8 @@ class InterpLany(InterpLlambda):
       case Call(Name('make_any'), [value, tag]):
         v = self.interp_exp(value, env)
         t = self.interp_exp(tag, env)
+        if isinstance(v, Tagged):
+          raise Exception('cannot inject a value that is already tagged')
         return Tagged(v, t)
       case Call(Name('arity'), [fun]):
         f = self.interp_exp(fun, env)

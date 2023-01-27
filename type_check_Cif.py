@@ -116,9 +116,10 @@ class TypeCheckCif:
               self.type_check_tail(ss[-1], env)
               if env == old_env:
                   break
-          undefs = [x for x,t in env.items() if t == Bottom()]
-          if undefs:
-              raise Exception('error: undefined type for ' + str(undefs)) 
+          # because of explicate_control there can be undefined vars -Jeremy
+          # undefs = [x for x,t in env.items() if t == Bottom()]
+          # if undefs:
+          #     raise Exception('error: undefined type for ' + str(undefs)) 
           p.var_types = env
       case _:
         raise Exception('error in type_check, unexpected ' + repr(p))

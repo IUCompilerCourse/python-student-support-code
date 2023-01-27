@@ -9,17 +9,36 @@ import typing
 
 class TypeCheckLlambda(TypeCheckLfun):
 
+  # Example:
+  # given: Callable[[tuple[bottom,tuple[int]], int], int]
+  # output: tuple[Callable[[tuple[],int], int]]:
+  def closure_type(self, fun_ty):
+    match fun_ty:
+      case FunctionType(params, rt):
+        return TupleType([FunctionType([TupleType([])] + params[1:], rt)])
+      case _:
+        raise Exception('erase_closure_type expected function type, not '
+                        + str(fun_ty))
+  
   def type_check_exp(self, e, env):
     match e:
       case Name(id):
         e.has_type = env[id]
         return env[id]
       case FunRef(id, arity):
-        return env[id]
+        e.has_type = env[id]
+        return e.has_type
+      case UncheckedCast(exp, ty):
+        self.type_check_exp(exp, env)
+        return ty
       case Closure(arity, es):
         ts = [self.type_check_exp(e, env) for e in es]
+        # closure values with different shapes must be given compatible types
+        # e.has_type and e.erased_type is used in expose_allocation
         e.has_type = TupleType(ts)
-        return e.has_type  # this is just wrong: closure values with different shapes must be given compatible types
+        function_type = ts[0]
+        e.erased_type = self.closure_type(function_type)
+        return e.erased_type
       case Lambda(params, body):
         raise Exception('cannot synthesize a type for lambda: ' + str(e))
       case AllocateClosure(length, typ, arity):
@@ -42,11 +61,10 @@ class TypeCheckLlambda(TypeCheckLfun):
           case FunctionType(params_t, return_t):
             for (arg, param_t) in zip(args, params_t):
                 self.check_exp(arg, param_t, env)
-            # self.check_type_equal(return_t, ty, e)
             return return_t
           case _:
-            raise Exception('type_check_exp: in call, unexpected ' + \
-                            repr(func_t))
+            raise Exception('type_check_exp: unexpected ' + \
+                            repr(func_t) + '\nin call\n' + str(e))
       case Uninitialized(ty):
         return ty
       case _:
