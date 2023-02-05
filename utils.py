@@ -4,6 +4,7 @@ from sys import platform
 import ast
 from ast import *
 from dataclasses import dataclass
+from contextlib import redirect_stdout,_RedirectStream
 
 # move these to the compilers, use a method with overrides -Jeremy
 builtin_functions = \
@@ -1129,16 +1130,28 @@ def label_name(n: str) -> str:
 
 tracing = False
 
+emulate_x86 = False
 
 def enable_tracing():
     global tracing
     tracing = True
+
+def enable_emulation():
+    global emulate_x86
+    emulate_x86 = True
 
 
 def trace(msg):
     if tracing:
         print(msg, file=sys.stderr)
 
+
+def trace_ast_and_concrete(ast):
+    trace("concrete syntax:")
+    trace(ast)
+    trace("")
+    trace("AST:")
+    trace(repr(ast))
 
 def is_python_extension(filename):
     s = os.path.splitext(filename)
@@ -1147,6 +1160,8 @@ def is_python_extension(filename):
     else:
         return False
 
+class redirect_stdin(_RedirectStream):
+    _stream = "stdin"
 
 # Given the `ast` output of a pass and a test program (root) name,
 # runs the interpreter on the program and compares the output to the
@@ -1155,14 +1170,12 @@ def test_pass(passname, interp_dict, program_root, ast,
               compiler_name):
     if passname in interp_dict.keys():
         input_file = program_root + '.in'
+        if not os.path.isfile(input_file):
+            input_file = "/dev/null"
         output_file = program_root + '.out'
-        stdin = sys.stdin
-        stdout = sys.stdout
-        sys.stdin = open(input_file, 'r')
-        sys.stdout = open(output_file, 'w')
-        interp_dict[passname](ast)
-        sys.stdin = stdin
-        sys.stdout = stdout
+        with open(input_file, 'r') as inf, open(output_file, 'w') as outf:
+            with redirect_stdout(outf), redirect_stdin(inf):
+                interp_dict[passname](ast)
         result = os.system('diff' + ' -b ' + output_file + ' ' + program_root + '.golden')
         if result == 0:
             trace('compiler ' + compiler_name + ' success on pass ' + passname \
@@ -1177,9 +1190,7 @@ def test_pass(passname, interp_dict, program_root, ast,
         return 0  # ??
 
 
-def compile_and_test(compiler, compiler_name,
-                     type_check_dict, interp_dict,
-                     program_filename):
+def compile_and_test(compiler, program_filename):
     total_passes = 0
     successful_passes = 0
     from eval_x86 import interp_x86
@@ -1192,226 +1203,23 @@ def compile_and_test(compiler, compiler_name,
     trace(program)
     trace('')
 
-    if 'source' in type_check_dict.keys():
+    if 'source' in compiler.typecheck_dict.keys():
         trace('\n# type checking source program\n')
-        type_check_dict['source'](program)
+        compiler.typecheck_dict['source'](program)
 
-    passname = 'shrink'
-    if hasattr(compiler, passname):
+    passes = compiler.passes()
+    for passname, passfn in passes:
         trace('\n# ' + passname + '\n')
-        program = compiler.shrink(program)
+        program = passfn(program)
         trace(program)
         trace('')
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
+        if passname in compiler.typecheck_dict.keys():
+            trace('compiler ' + compiler.compiler_name + ' type checking on pass ' + passname \
+                  + ' on test ' + program_root + '\n')
+            compiler.typecheck_dict[passname](program)
         total_passes += 1
         successful_passes += \
-            test_pass(passname, interp_dict, program_root, program, compiler_name)
-    else:
-        trace("\n# no shrink pass!")
-        
-    passname = 'uniquify'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.uniquify(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program, compiler_name)
-
-    passname = 'reveal_functions'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.reveal_functions(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'resolve'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.resolve(program)
-        trace(program)
-        trace('')
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program, compiler_name)
-
-    passname = 'erase_types'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.erase_types(program)
-        trace(program)
-        trace('')
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program, compiler_name)
-        
-    passname = 'cast_insert'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.cast_insert(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'lower_casts'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.lower_casts(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'differentiate_proxies'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.differentiate_proxies(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'reveal_casts'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.reveal_casts(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'convert_assignments'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.convert_assignments(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'convert_to_closures'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.convert_to_closures(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'limit_functions'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.limit_functions(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            trace('type checking after ' + passname + '\n')
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'expose_allocation'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.expose_allocation(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            trace('type checking after ' + passname + '\n')
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'remove_complex_operands'
-    trace('\n# ' + passname + '\n')
-    program = compiler.remove_complex_operands(program)
-    trace(program)
-    if passname in type_check_dict.keys():
-        type_check_dict[passname](program)
-    total_passes += 1
-    successful_passes += \
-        test_pass(passname, interp_dict, program_root, program,
-                  compiler_name)
-
-    passname = 'explicate_control'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.explicate_control(program)
-        trace(program)
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-            trace('type checking passed')
-        else:
-            trace('skipped type checking')
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-
-    passname = 'select_instructions'
-    trace('\n# ' + passname + '\n')
-    program = compiler.select_instructions(program)
-    trace(program)
-    total_passes += 1
-    successful_passes += \
-        test_pass(passname, interp_dict, program_root, program,
-                  compiler_name)
-
-    passname = 'assign_homes'
-    trace('\n# ' + passname + '\n')
-    program = compiler.assign_homes(program)
-    trace(program)
-    total_passes += 1
-    successful_passes += \
-        test_pass(passname, interp_dict, program_root, program,
-                  compiler_name)
-
-    passname = 'patch_instructions'
-    trace('\n# ' + passname + '\n')
-    program = compiler.patch_instructions(program)
-    trace(program)
-    total_passes += 1
-    successful_passes += \
-        test_pass(passname, interp_dict, program_root, program,
-                  compiler_name)
-
-    trace('\n# prelude and conclusion\n')
-    program = compiler.prelude_and_conclusion(program)
-    trace(program)
-    trace("")
+             test_pass(passname, compiler.interp_dict, program_root, program, compiler.compiler_name)
 
     x86_filename = program_root + ".s"
     with open(x86_filename, "w") as dest:
@@ -1420,23 +1228,25 @@ def compile_and_test(compiler, compiler_name,
     total_passes += 1
 
     # Run the final x86 program
-    emulate_x86 = False
+    input_file = program_root + '.in'
+    if not os.path.isfile(input_file):
+        input_file = "/dev/null"
+    output_file = program_root + '.out'
     if emulate_x86:
-        stdin = sys.stdin
-        stdout = sys.stdout
-        sys.stdin = open(program_root + '.in', 'r')
-        sys.stdout = open(program_root + '.out', 'w')
-        interp_x86(program)
-        sys.stdin = stdin
-        sys.stdout = stdout
+         trace('emulating x86')
+         with open(input_file, 'r') as inf, open(output_file, 'w') as outf:
+              with redirect_stdout(outf), redirect_stdin(inf):
+                  interp_x86(program)
     else:
-        if platform == 'darwin':
-            os.system('gcc -arch x86_64 runtime.o ' + x86_filename)
-        else:
-            os.system('gcc runtime.o ' + x86_filename)
-        input_file = program_root + '.in'
-        output_file = program_root + '.out'
-        os.system('./a.out < ' + input_file + ' > ' + output_file)
+        trace('executing x86')
+        arch = ' -arch x86_64' if platform == 'darwin' else ''
+        x86_executable = program_root + '.exe'
+        if os.path.isfile(x86_executable):
+            os.remove(x86_executable)
+        if os.path.isfile(output_file):
+            os.remove(output_file)
+        os.system('gcc' + arch + ' -o ' + x86_executable + ' runtime.o ' + x86_filename)
+        os.system(x86_executable + ' < ' + input_file + ' > ' + output_file)
 
     result = os.system('diff' + ' -b ' + program_root + '.out ' \
                        + program_root + '.golden')
@@ -1444,124 +1254,46 @@ def compile_and_test(compiler, compiler_name,
         successful_passes += 1
         return (successful_passes, total_passes, 1)
     else:
-        print('compiler ' + compiler_name + ', executable failed' \
+        print('compiler ' + compiler.compiler_name + ', executable failed' \
               + ' on test ' + program_root)
         return (successful_passes, total_passes, 0)
 
 
-def trace_ast_and_concrete(ast):
-    trace("concrete syntax:")
-    trace(ast)
-    trace("")
-    trace("AST:")
-    trace(repr(ast))
-
-
 # This function compiles the program without any testing
-def compile(compiler, compiler_name, type_check_L, type_check_C,
-            program_filename):
+def compile(compiler, program_filename):
     program_root = os.path.splitext(program_filename)[0]
     with open(program_filename) as source:
         program = parse(source.read())
 
+    trace_ast_and_concrete(program)
     trace('\n# type check\n')
-    type_check_L(program)
-    trace_ast_and_concrete(program)
+    compiler.typecheck_dict['source'](program)
 
-    if hasattr(compiler, 'shrink'):
-        trace('\n# shrink\n')
-        program = compiler.shrink(program)
+    passes = compiler.passes()
+    for passname, passfn in passes:
+        trace('\n# ' + passname + '\n')
+        program = passfn(program)
         trace_ast_and_concrete(program)
-
-    if hasattr(compiler, 'uniquify'):
-        trace('\n# uniquify\n')
-        program = compiler.uniquify(program)
-        trace_ast_and_concrete(program)
-
-    if hasattr(compiler, 'reveal_functions'):
-        trace('\n# reveal functions\n')
-        type_check_L(program)
-        program = compiler.reveal_functions(program)
-        trace_ast_and_concrete(program)
-
-    if hasattr(compiler, 'convert_assignments'):
-        trace('\n# assignment conversion\n')
-        type_check_L(program)
-        program = compiler.convert_assignments(program)
-        trace_ast_and_concrete(program)
-
-    if hasattr(compiler, 'limit_functions'):
-        trace('\n# limit functions\n')
-        type_check_L(program)
-        program = compiler.limit_functions(program)
-        trace_ast_and_concrete(program)
-
-    if hasattr(compiler, 'convert_to_closures'):
-        trace('\n# closure conversion\n')
-        type_check_L(program)
-        program = compiler.convert_to_closures(program)
-        trace_ast_and_concrete(program)
-
-    if hasattr(compiler, 'expose_allocation'):
-        trace('\n# expose allocation\n')
-        type_check_L(program)
-        program = compiler.expose_allocation(program)
-        trace_ast_and_concrete(program)
-
-    trace('\n# remove complex\n')
-    program = compiler.remove_complex_operands(program)
-    trace_ast_and_concrete(program)
-
-    if hasattr(compiler, 'explicate_control'):
-        trace('\n# explicate control\n')
-        program = compiler.explicate_control(program)
-        trace_ast_and_concrete(program)
-
-    if type_check_C:
-        type_check_C(program)
-
-    trace('\n# select instructions\n')
-    pseudo_x86 = compiler.select_instructions(program)
-    trace_ast_and_concrete(pseudo_x86)
-
-    trace('\n# assign homes\n')
-    almost_x86 = compiler.assign_homes(pseudo_x86)
-    trace_ast_and_concrete(almost_x86)
-
-    trace('\n# patch instructions\n')
-    x86 = compiler.patch_instructions(almost_x86)
-    trace_ast_and_concrete(x86)
-
-    trace('\n# prelude and conclusion\n')
-    x86 = compiler.prelude_and_conclusion(x86)
-    trace_ast_and_concrete(x86)
 
     # Output x86 program to the .s file
     x86_filename = program_root + ".s"
     with open(x86_filename, "w") as dest:
-        dest.write(str(x86))
+        dest.write(str(prgram))
 
-    # Given a test file name, the name of a language, a compiler, a type
-
-
-# checker and interpreter for the language, and an interpeter for the
-# C intermediate language, run all the passes in the compiler,
+# Given a test file name and a compiler, run all the passes in the compiler,
 # checking that the resulting programs produce output that matches the
 # golden file.
-def run_one_test(test, lang, compiler, compiler_name,
-                 type_check_dict, interp_dict):
-#    test_root = os.path.splitext(test)[0]
-#    test_name = os.path.basename(test_root)
-    return compile_and_test(compiler, compiler_name, type_check_dict,
-                            interp_dict, test)
+def run_one_test(test, compiler):
+    try: 
+        return compile_and_test(compiler,test)
+    except Exception as exn:
+        from traceback import print_exc
+        print_exc(file=sys.stderr)
+        return (0,0,0)
 
-
-# Given the name of a language, a compiler, the compiler's name, a
-# type checker and interpreter for the language, and an interpreter
-# for the C intermediate language, test the compiler on all the tests
-# in the directory of for the given language, i.e., all the
-# python files in ./tests/<language>.
-def run_tests(lang, compiler, compiler_name, type_check_dict, interp_dict):
+# Given a language name <language> and a compiler,
+# test the compiler on all python files in ./tests/<language>.
+def run_tests(lang, compiler):
     # Collect all the test programs for this language.
     homedir = os.getcwd()
     directory = homedir + '/tests/' + lang + '/'
@@ -1579,8 +1311,7 @@ def run_tests(lang, compiler, compiler_name, type_check_dict, interp_dict):
     total_tests = 0
     for test in tests:
         (succ_passes, tot_passes, succ_test) = \
-            run_one_test(test, lang, compiler, compiler_name,
-                         type_check_dict, interp_dict)
+            run_one_test(test, compiler)
         successful_passes += succ_passes
         total_passes += tot_passes
         successful_tests += succ_test
@@ -1588,6 +1319,30 @@ def run_tests(lang, compiler, compiler_name, type_check_dict, interp_dict):
 
     # Report the pass/fails
     print('tests: ' + repr(successful_tests) + '/' + repr(total_tests) \
-          + ' for compiler ' + compiler_name + ' on language ' + lang)
+          + ' for compiler ' + compiler.compiler_name + ' on language ' + lang)
     print('passes: ' + repr(successful_passes) + '/' + repr(total_passes) \
-          + ' for compiler ' + compiler_name + ' on language ' + lang)
+          + ' for compiler ' + compiler.compiler_name + ' on language ' + lang)
+
+# Given a list of file names and a compiler, 
+# test the compiler on each file.
+def run_selected_tests(tests, compiler):
+    # Compile and run each test program, comparing output to the golden file.
+    successful_passes = 0
+    total_passes = 0
+    successful_tests = 0
+    total_tests = 0
+    for test in tests:
+        print(test + ':', file=sys.stderr)
+        (succ_passes, tot_passes, succ_test) = \
+            run_one_test(test, compiler)
+        successful_passes += succ_passes
+        total_passes += tot_passes
+        successful_tests += succ_test
+        total_tests += 1
+
+    # Report the pass/fails
+    print('tests: ' + repr(successful_tests) + '/' + repr(total_tests) \
+          + ' for compiler ' + compiler.compiler_name)
+    print('passes: ' + repr(successful_passes) + '/' + repr(total_passes) \
+          + ' for compiler ' + compiler.compiler_name)
+    
