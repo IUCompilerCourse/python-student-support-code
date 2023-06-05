@@ -17,16 +17,15 @@ class Compiler:
 
     def rco_exp(self, e: expr, need_atomic: bool) -> Tuple[expr, Temporaries]:
         # YOUR CODE HERE
-        pass
+        raise Exception('rco_exp not implemented')
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
         # YOUR CODE HERE
-        pass
-        
+        raise Exception('rco_stmt not implemented')
 
-    def remove_complex_operands(self, p: Module) -> Module:
-        # YOUR CODE HERE
-        pass
+    # def remove_complex_operands(self, p: Module) -> Module:
+    #     # YOUR CODE HERE
+    #     raise Exception('remove_complex_operands not implemented')
         
 
     ############################################################################
