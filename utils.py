@@ -1186,7 +1186,7 @@ def compile_and_test(compiler, compiler_name,
     total_passes = 0
     successful_passes = 0
     successful_test = 0
-    from eval_x86 import interp_x86
+    from interp_x86.eval_x86 import interp_x86
 
     program_root = os.path.splitext(program_filename)[0]
     with open(program_filename) as source:

@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 from utils import *
 
-from convert_x86 import convert_program
-from parser_x86 import x86_parser, x86_parser_instrs
+from .convert_x86 import convert_program
+from .parser_x86 import x86_parser, x86_parser_instrs
 
 
 def interp_x86(program):
