@@ -1595,6 +1595,7 @@ def run_tests(lang, compiler, compiler_name, type_check_dict, interp_dict):
         total_passes += tot_passes
         successful_tests += succ_test
         total_tests += 1
+        print("go one test\n")
 
     # Report the pass/fails
     print('tests: ' + repr(successful_tests) + '/' + repr(total_tests) \
