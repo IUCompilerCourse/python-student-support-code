@@ -1,8 +1,8 @@
 import os
 import sys
 
-sys.path.append('../python-student-support-code')
-sys.path.append('../python-student-support-code/interp_x86')
+sys.path.append('../E513_compiler')
+sys.path.append('../E513_compiler/interp_x86')
 
 import compiler
 import interp_Lvar

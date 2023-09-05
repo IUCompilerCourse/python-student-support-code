@@ -17,39 +17,39 @@ class Compiler:
 
     def rco_exp(self, e: expr, need_atomic: bool) -> Tuple[expr, Temporaries]:
 
-        if isinstance(e, bool):
+        if isinstance(e, Constant):
             return e, []
-        
-        elif isinstance(e, int):
-            return e, []
-        
         elif isinstance(e, Name):
-            if need_atomic:
+            if not need_atomic:
                 return e, []
             else:
                 temp = Name(generate_name("temp"))
-                return temp, [(temp, e)]
-            
+                return temp, [(temp, e)]     
         elif isinstance(e, BinOp):
             lhs, lhs_temporaries = self.rco_exp(e.left, True)
             rhs, rhs_temporaries = self.rco_exp(e.right, True)
 
             temp = Name(generate_name("temp"))
             return temp, lhs_temporaries + rhs_temporaries + [(temp, BinOp(lhs, e.op, rhs))]
+        elif isinstance(e, UnaryOp):
+            operand, operand_temporaries = self.rco_exp(e.operand, True)
+            temp = generate_name("temp")
+            return temp, operand_temporaries + [temp, UnaryOp(e.op, operand)]
         
         raise Exception('rco_exp not implemented')
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
 
         if isinstance(s, Assign):
-            target, target_temporaries = self.rco_exp(s.lhs, False)
-            source, source_temporaries = self.rco_exp(s.rhs, True)
-
+            target, target_temporaries = self.rco_exp(s.targets[0], False)
+            source, source_temporaries = self.rco_exp(s.value, True)
             #Combine temporaries from the lhs and rhs..
             all_temporaries = target_temporaries + source_temporaries
 
             return all_temporaries + [Assign(target, source)]
-        
+        elif isinstance(s, Expr):
+            expr, temporaries = self.rco_exp(s.value, True)
+            return temporaries + [Expr(expr)]
         raise Exception('rco_stmt not implemented')
 
     def remove_complex_operands(self, p: Module) -> Module:
