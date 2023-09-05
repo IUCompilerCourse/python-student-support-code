@@ -108,21 +108,46 @@ class Compiler:
 
     def assign_homes_arg(self, a: arg, home: Dict[Variable, arg]) -> arg:
         # YOUR CODE HERE
-        pass        
+        # We define every arg, but what does 'home' do?
+        # I think currently, arg could be a Variable or other arg.
+        if isinstance(a, Variable):
+            return home[a]
+        return a
 
     def assign_homes_instr(self, i: instr,
                            home: Dict[Variable, arg]) -> instr:
         # YOUR CODE HERE
-        pass        
+        # create a new Instr
+        new_a = []
+        for a in i.args:
+            new_a.append(self.assign_homes_arg(a), home)
+        return Instr(i.instr, new_a)
 
     def assign_homes_instrs(self, ss: List[instr],
                             home: Dict[Variable, arg]) -> List[instr]:
         # YOUR CODE HERE
-        pass        
+        new_instrs = []
+        num_varibale = 0
+        # first iteration, build a dict to save all variable and corresponding deref as key-value pairs
+        for s in ss:
+            for a in s.args:
+                if isinstance(a) and a not in home:
+                    num_varibale += 1
+                    home[a] = Deref("rbp", -8 * num_varibale)
+        # second iteration, replace all variable
+        for s in ss:
+            new_instrs.append(self.assign_homes_instr(s, home))
+        return new_instrs
 
     def assign_homes(self, p: X86Program) -> X86Program:
         # YOUR CODE HERE
-        pass        
+        if isinstance(p.body, dict):
+            assign_home_instrs = {}
+            for label, instrs in p.body.items():
+                assign_home_instrs[label] = self.assign_homes_instrs(instrs)
+        else:
+            assign_home_instrs = self.assign_homes_instrs(p.body)
+        return X86Program(assign_home_instrs)
 
     ############################################################################
     # Patch Instructions
@@ -223,7 +248,7 @@ class Compiler:
         return X86Program(new_body)
 
     # challenge, exercise 2.7
-    # 
+    '''
     def pe_exp(e):
         match e:
             case BinOp(left, Add(), right):
@@ -242,3 +267,4 @@ class Compiler:
                 return Expr(Call(Name('print'), [pe_exp(arg)]))
             case Expr(value):
                 return Expr(pe_exp(value))
+    '''
