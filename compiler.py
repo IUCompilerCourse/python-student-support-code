@@ -16,7 +16,7 @@ class Compiler:
     ############################################################################
 
     def rco_exp(self, e: expr, need_atomic: bool) -> Tuple[expr, Temporaries]:
-        # YOUR CODE HERE
+
         if isinstance(e, bool):
             return e, []
         
@@ -37,19 +37,10 @@ class Compiler:
             temp = Name(generate_name("temp"))
             return temp, lhs_temporaries + rhs_temporaries + [(temp, BinOp(lhs, e.op, rhs))]
         
-        elif isinstance(e, Let):
-            var = e.var
-            var_temporaries = self.rco_exp(e.rhs, False)
-            body, body_temporaries = self.rco_exp(e.body, need_atomic)
-            
-            # Combine temporaries from the rhs and body.
-            all_temporaries = var_temporaries + body_temporaries
-
-            return body, all_temporaries
         raise Exception('rco_exp not implemented')
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
-        # YOUR CODE HERE
+
         if isinstance(s, Assign):
             target, target_temporaries = self.rco_exp(s.lhs, False)
             source, source_temporaries = self.rco_exp(s.rhs, True)
@@ -59,28 +50,10 @@ class Compiler:
 
             return all_temporaries + [Assign(target, source)]
         
-        elif isinstance(s, If):
-            condition, condition_temporaries = self.rco_exp(s.cond, False)
-            true_branch = self.rco_stmt(s.true)
-            false_branch = self.rco_stmt(s.false)
-
-            return(
-                condition_temporaries + [If(condition, Seq(true_branch), Seq(false_branch))]
-            )
-
-        elif isinstance(s, Seq):
-            stmts = []
-            temporaries = []
-            for sub_stmt in s.stmts:
-                sub_stmt_temporaries = self.rco_stmt(sub_stmt)
-                temporaries += sub_stmt_temporaries
-                stmts.append(sub_stmt_temporaries[-1])  # Append the last statement.   
-
-            return temporaries + [Seq(stmts)]
         raise Exception('rco_stmt not implemented')
 
     def remove_complex_operands(self, p: Module) -> Module:
-        # YOUR CODE HERE
+
         transformed_statements = []
         for stmt in p.body:
             rco_statements = self.rco_stmt(stmt)
@@ -98,16 +71,36 @@ class Compiler:
     ############################################################################
 
     def select_arg(self, e: expr) -> arg:
-        # YOUR CODE HERE
-        pass        
+
+        # Implement the logic to select an argument for the target architecture.
+        if isinstance(e, Name):
+            return Reg(e.name) # Assuming the name is a register
+        elif isinstance(e, Constant):
+            return Immediate(e.value) # Assuming the value is an immediate value
+        else:
+            raise Exception('select_arg not implemented')
+    
 
     def select_stmt(self, s: stmt) -> List[instr]:
-        # YOUR CODE HERE
-        pass        
+        # Implement the logic to select instructions for a statement
+        if isinstance(s, Assign):
+            target = self.select_arg(s.lhs)
+            source = self.select_arg(s.rhs)
+            return [Instr("movq", [source, target])] # Replace with actual instructions
+        else:
+            raise Exception('select_stmt not implemented')
+
 
     def select_instructions(self, p: Module) -> X86Program:
-        # YOUR CODE HERE
-        pass        
+        # Implement the logic to select instructions for a program
+        selected_instructions = []
+        for stmt in p.body:
+            selected_stmt = self.select_stmt(stmt)
+            selected_instructions.extend(selected_stmt)
+
+        # Create a new X86Program with the selected instructions.
+        x86_program = X86Program(selected_instructions)
+        return x86_program       
 
     ############################################################################
     # Assign Homes
