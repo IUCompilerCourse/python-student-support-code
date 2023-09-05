@@ -35,7 +35,7 @@ class Compiler:
             operand, operand_temporaries = self.rco_exp(e.operand, True)
             temp = generate_name("temp")
             return temp, operand_temporaries + [temp, UnaryOp(e.op, operand)]
-        
+        print(e)
         raise Exception('rco_exp not implemented')
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
