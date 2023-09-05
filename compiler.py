@@ -23,9 +23,9 @@ class Compiler:
         # YOUR CODE HERE
         raise Exception('rco_stmt not implemented')
 
-    # def remove_complex_operands(self, p: Module) -> Module:
-    #     # YOUR CODE HERE
-    #     raise Exception('remove_complex_operands not implemented')
+    def remove_complex_operands(self, p: Module) -> Module:
+        # YOUR CODE HERE
+        raise Exception('remove_complex_operands not implemented')
         
 
     ############################################################################
@@ -40,9 +40,9 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    # def select_instructions(self, p: Module) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
+    def select_instructions(self, p: Module) -> X86Program:
+        # YOUR CODE HERE
+        pass        
 
     ############################################################################
     # Assign Homes
@@ -62,9 +62,9 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    # def assign_homes(self, p: X86Program) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
+    def assign_homes(self, p: X86Program) -> X86Program:
+        # YOUR CODE HERE
+        pass        
 
     ############################################################################
     # Patch Instructions
@@ -72,21 +72,97 @@ class Compiler:
 
     def patch_instr(self, i: instr) -> List[instr]:
         # YOUR CODE HERE
-        pass        
+        res = []
+        # if ("(" in str(i.source())) and ("(" in str(i.target())):
+        if isinstance(i.source(), Deref) and isinstance(i.target(), Deref):
+            # two memory access, do patch instration operation
+            # build two instration and add into list
+            # I assume %rax as a intermediate register and always available
+            # but how to check if it is in use?
+            mov_instr = Instr("movq", [i.source(), Reg("rax")])
+            # for movq, addq, subq, second operation should be same as original operation
+            op_instr = Instr(i.instr, [Reg("rax"), i.target()])
+            res.append(mov_instr)
+            res.append(op_instr)
+        else:
+            # add instration into list
+            res.append(i)
+        return res
 
     def patch_instrs(self, ss: List[instr]) -> List[instr]:
         # YOUR CODE HERE
-        pass        
+        res = []
+        for s in ss:
+            instr_res = self.patch_instr(s)
+            for ins in instr_res:
+                res.append(ins)
+        return res
 
-    # def patch_instructions(self, p: X86Program) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
+    def patch_instructions(self, p: X86Program) -> X86Program:
+        # YOUR CODE HERE
+        if isinstance(p.body, dict):
+            patched_instrs = {}
+            for label, instrs in p.body.items():
+                patched_instrs[label] = self.patch_instrs(instrs)
+        else:
+            patched_instrs = self.patch_instrs(p.body)
+        
+        return X86Program(patched_instrs)
 
     ############################################################################
     # Prelude & Conclusion
     ############################################################################
 
-    # def prelude_and_conclusion(self, p: X86Program) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
+    def prelude_and_conclusion(self, p: X86Program) -> X86Program:
+        # YOUR CODE HERE
+        # The problem is that how to know the size I need to allocate.
+        # iterate on this program and 
+        max_offset = 0 
+        # If we have multiple functions (with labels)
+        if isinstance(p.body, dict):
+            for label, instrs in p.body.items():
+                for instr in instrs:
+                    for arg in instr.args:
+                        if isinstance(arg, Deref):
+                            max_offset = max(max_offset, arg.offset)
+            new_body = {}
+            for label, instrs in p.body.items():
+                # instructions for stack allocations
+                prelude = [
+                    Instr("pushq", [Reg("rbp")]),
+                    Instr("movq", [Reg("rsp"), Reg("rbp")]),
+                    Instr("subq", [Immediate(max_offset), Reg("rsp")])
+                ]
+                # instructions for restore stack allocations
+                conclusion = [
+                    Instr("addq", Immediate(max_offset), Reg("rsp")),
+                    # Instr("mov", ["%rbp", "%rsp"]), # is equal to addq if %rbp 's value is not changed
+                    Instr("popq", [Reg("rbp")]),
+                    Instr("retq", [])
+                ]
+                
+                new_body[label] = prelude + instrs + conclusion          
+        else:  
+            # If we have a single main function
+            for instr in p.body:
+                for arg in instr.args:
+                    if isinstance(arg, Deref):
+                        max_offset = max(max_offset, arg.offset)
+            prelude = [
+                Instr("pushq", [Reg("rbp")]),
+                Instr("movq", [Reg("rsp"), Reg("rbp")]),
+                Instr("subq", [Immediate(max_offset), Reg("rsp")])
+            ]
+            
+            conclusion = [
+                Instr("addq", Immediate(max_offset), Reg("rsp")),
+                Instr("popq", [Reg("rbp")]),
+                Instr("retq", [])
+            ]
+            
+            new_body = prelude + p.body + conclusion
 
+        return X86Program(new_body)
+
+    # challenge
+    
