@@ -229,5 +229,23 @@ class Compiler:
 
         return X86Program(new_body)
 
-    # challenge
-    
+    # challenge, exercise 2.7
+    # 
+    def pe_exp(e):
+        match e:
+            case BinOp(left, Add(), right):
+                return pe_add(pe_exp(left), pe_exp(right))
+            case BinOp(left, Sub(), right):
+                return pe_sub(pe_exp(left), pe_exp(right))
+            case UnaryOp(USub(), v):
+                return pe_neg(pe_exp(v))
+            case Constant(value):
+                return e
+            case Call(Name('input_int'), []):
+                return e
+    def pe_stmt(s):
+        match s:
+            case Expr(Call(Name('print'), [arg])):
+                return Expr(Call(Name('print'), [pe_exp(arg)]))
+            case Expr(value):
+                return Expr(pe_exp(value))
