@@ -17,14 +17,79 @@ class Compiler:
 
     def rco_exp(self, e: expr, need_atomic: bool) -> Tuple[expr, Temporaries]:
         # YOUR CODE HERE
+        if isinstance(e, bool):
+            return e, []
+        
+        elif isinstance(e, int):
+            return e, []
+        
+        elif isinstance(e, Name):
+            if need_atomic:
+                return e, []
+            else:
+                temp = Name(generate_name("temp"))
+                return temp, [(temp, e)]
+            
+        elif isinstance(e, BinOp):
+            lhs, lhs_temporaries = self.rco_exp(e.left, True)
+            rhs, rhs_temporaries = self.rco_exp(e.right, True)
+
+            temp = Name(generate_name("temp"))
+            return temp, lhs_temporaries + rhs_temporaries + [(temp, BinOp(lhs, e.op, rhs))]
+        
+        elif isinstance(e, Let):
+            var = e.var
+            var_temporaries = self.rco_exp(e.rhs, False)
+            body, body_temporaries = self.rco_exp(e.body, need_atomic)
+            
+            # Combine temporaries from the rhs and body.
+            all_temporaries = var_temporaries + body_temporaries
+
+            return body, all_temporaries
         raise Exception('rco_exp not implemented')
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
         # YOUR CODE HERE
+        if isinstance(s, Assign):
+            target, target_temporaries = self.rco_exp(s.lhs, False)
+            source, source_temporaries = self.rco_exp(s.rhs, True)
+
+            #Combine temporaries from the lhs and rhs..
+            all_temporaries = target_temporaries + source_temporaries
+
+            return all_temporaries + [Assign(target, source)]
+        
+        elif isinstance(s, If):
+            condition, condition_temporaries = self.rco_exp(s.cond, False)
+            true_branch = self.rco_stmt(s.true)
+            false_branch = self.rco_stmt(s.false)
+
+            return(
+                condition_temporaries + [If(condition, Seq(true_branch), Seq(false_branch))]
+            )
+
+        elif isinstance(s, Seq):
+            stmts = []
+            temporaries = []
+            for sub_stmt in s.stmts:
+                sub_stmt_temporaries = self.rco_stmt(sub_stmt)
+                temporaries += sub_stmt_temporaries
+                stmts.append(sub_stmt_temporaries[-1])  # Append the last statement.   
+
+            return temporaries + [Seq(stmts)]
         raise Exception('rco_stmt not implemented')
 
     def remove_complex_operands(self, p: Module) -> Module:
         # YOUR CODE HERE
+        transformed_statements = []
+        for stmt in p.body:
+            rco_statements = self.rco_stmt(stmt)
+            transformed_statements.extend(rco_statements)
+
+        #Create a new Module with the transformed statements.
+        transformed_program = Module(transformed_statements)
+        
+        return transformed_program
         raise Exception('remove_complex_operands not implemented')
         
 
