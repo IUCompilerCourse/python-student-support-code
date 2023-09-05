@@ -115,12 +115,21 @@ class Compiler:
 
     def assign_homes_arg(self, a: arg, home: Dict[Variable, arg]) -> arg:
         # YOUR CODE HERE
+        # We define every arg, but what does 'home' do?
+        # I think currently, arg is actually a Variable.
+        # We actually build a reverse-dict?
+        # Varibale only have id, where to save offset?
+        if a not in home.items():
+            home[] = a
         pass        
 
     def assign_homes_instr(self, i: instr,
                            home: Dict[Variable, arg]) -> instr:
         # YOUR CODE HERE
-        pass        
+        new_a = []
+        for a in i.args:
+            new_a.append(self.assign_homes_arg(a), home)
+        return Instr(i.instr, new_a)
 
     def assign_homes_instrs(self, ss: List[instr],
                             home: Dict[Variable, arg]) -> List[instr]:
@@ -129,6 +138,7 @@ class Compiler:
 
     def assign_homes(self, p: X86Program) -> X86Program:
         # YOUR CODE HERE
+
         pass        
 
     ############################################################################
@@ -230,7 +240,7 @@ class Compiler:
         return X86Program(new_body)
 
     # challenge, exercise 2.7
-    # 
+    '''
     def pe_exp(e):
         match e:
             case BinOp(left, Add(), right):
@@ -249,3 +259,4 @@ class Compiler:
                 return Expr(Call(Name('print'), [pe_exp(arg)]))
             case Expr(value):
                 return Expr(pe_exp(value))
+    '''
