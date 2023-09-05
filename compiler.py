@@ -119,9 +119,10 @@ class Compiler:
         # I think currently, arg is actually a Variable.
         # We actually build a reverse-dict?
         # Varibale only have id, where to save offset?
-        if a not in home.items():
-            home[] = a
-        pass        
+        if a not in home and isinstance(a, Variable):
+            offset = -8 * len(home.keys())
+            home[a] = Deref("rbp", offset)
+        return home[a]        
 
     def assign_homes_instr(self, i: instr,
                            home: Dict[Variable, arg]) -> instr:
@@ -134,11 +135,14 @@ class Compiler:
     def assign_homes_instrs(self, ss: List[instr],
                             home: Dict[Variable, arg]) -> List[instr]:
         # YOUR CODE HERE
+        new_instrs = []
+        for s in ss:
+            new_instrs.append(self.assign_homes_instr(s, home))
         pass        
 
     def assign_homes(self, p: X86Program) -> X86Program:
         # YOUR CODE HERE
-
+        return X86Program()
         pass        
 
     ############################################################################
