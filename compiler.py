@@ -62,18 +62,12 @@ class Compiler:
         raise Exception('rco_stmt not implemented')
 
     def remove_complex_operands(self, p: Module) -> Module:
-        print(f"Original statements are, {p.body}\n\n")
         transformed_statements = []
         for stmt in p.body:
             rco_statements = self.rco_stmt(stmt)
             transformed_statements += rco_statements
-
         #Create a new Module with the transformed statements.
-        print("final statements are, ", transformed_statements)
-        #for i in transformed_statements:
-            #print(i)
         transformed_program = Module(transformed_statements)
-        print("transformed program is, ", transformed_program)
         return transformed_program
         
 
@@ -82,26 +76,51 @@ class Compiler:
     ############################################################################
 
     def select_arg(self, e: expr) -> arg:
-
-        # Implement the logic to select an argument for the target architecture.
+    # Implement the logic to select an argument for the target architecture.
         if isinstance(e, Name):
-            return Variable(e.id) 
+            return Variable(e.id)
         elif isinstance(e, Constant):
-            return Immediate(e.value) # Assuming the value is an immediate value
-        elif isinstance(e, Call):
-            if isinstance(e.func, Name) and e.func.id == "print":  
-                
-            elif isinstance(e.func, Name) and e.func.id == "input_int":
-
-        raise Exception('select_arg not implemented')
+            return Immediate(e.value)
+        # Errors for unhandled cases:
+        else:
+            raise Exception('select_arg not implemented')
         
 
     def select_stmt(self, s: stmt) -> List[instr]:
-        # Implement the logic to select instructions for a statement
         if isinstance(s, Assign):
             target = self.select_arg(s.targets[0])
+            if isinstance(s.value, BinOp):
+                lhs = self.select_arg(s.value.left)
+                rhs = self.select_arg(s.value.right)
+                op = s.value.op
+                if isinstance(op, Add):
+                    return [Instr("movq", [lhs, target]), 
+                            Instr("addq", [rhs, target])]
+                elif isinstance(op, Sub):
+                    return [Instr("movq", [lhs, target]), 
+                            Instr("subq", [rhs, target])]
+            elif isinstance(s.value, UnaryOp):
+                target = self.select_arg(s.targets[0])
+                op = s.value.op
+                if isinstance(op, USub):  # assuming UMinus is the unary minus operation
+                    return [Instr("negq", [target])]            
+            elif isinstance(s.value, Call):
+                if s.value.func.id == "input_int":
+                    return [Callq(label_name("read_int"), 1),
+                            Instr("movq", [Reg("rax"), self.select_arg(s.targets[0])])]
             source = self.select_arg(s.value)
-            return [Instr("movq", [source, target])] # Replace with actual instructions
+            return [Instr("movq", [source, target])]
+        # Handling Call instruction, e.g., print and input_int
+        elif isinstance(s.value, Call):
+            sv = s.value
+            if isinstance(sv.func, Name):
+                if sv.func.id == "print":
+                    arg = self.select_arg(sv.args[0])
+                    return [Instr("movq", [arg, Reg("rdi")]),
+                            Callq(label_name("print_int"), 1)]
+                elif sv.func.id == "input_int":
+                    return [Callq(label_name("read_int"), 1),
+                            Instr("movq", [Reg("rax"), self.select_arg(s.targets[0])])]
         else:
             raise Exception('select_stmt not implemented')
 
@@ -111,8 +130,7 @@ class Compiler:
         selected_instructions = []
         for stmt in p.body:
             selected_stmt = self.select_stmt(stmt)
-            selected_instructions.extend(selected_stmt)
-
+            selected_instructions += selected_stmt
         # Create a new X86Program with the selected instructions.
         x86_program = X86Program(selected_instructions)
         return x86_program       
@@ -134,9 +152,12 @@ class Compiler:
         # YOUR CODE HERE
         # create a new Instr
         new_a = []
-        for a in i.args:
-            new_a.append(self.assign_homes_arg(a), home)
-        return Instr(i.instr, new_a)
+        if isinstance(i, Instr):
+            for a in i.args:
+                new_a.append(self.assign_homes_arg(a, home))
+            return Instr(i.instr, new_a)
+        else:
+            return i
 
     def assign_homes_instrs(self, ss: List[instr],
                             home: Dict[Variable, arg]) -> List[instr]:
@@ -145,10 +166,11 @@ class Compiler:
         num_varibale = 0
         # first iteration, build a dict to save all variable and corresponding deref as key-value pairs
         for s in ss:
-            for a in s.args:
-                if isinstance(a) and a not in home:
-                    num_varibale += 1
-                    home[a] = Deref("rbp", -8 * num_varibale)
+            if isinstance(s, Instr):
+                for a in s.args:
+                    if isinstance(a, Variable) and a not in home:
+                        num_varibale += 1
+                        home[a] = Deref("rbp", -8 * num_varibale)
         # second iteration, replace all variable
         for s in ss:
             new_instrs.append(self.assign_homes_instr(s, home))
@@ -161,7 +183,8 @@ class Compiler:
             for label, instrs in p.body.items():
                 assign_home_instrs[label] = self.assign_homes_instrs(instrs)
         else:
-            assign_home_instrs = self.assign_homes_instrs(p.body)
+            home = {}
+            assign_home_instrs = self.assign_homes_instrs(p.body, home)
         return X86Program(assign_home_instrs)
 
     ############################################################################
@@ -172,7 +195,7 @@ class Compiler:
         # YOUR CODE HERE
         res = []
         # if ("(" in str(i.source())) and ("(" in str(i.target())):
-        if isinstance(i.source(), Deref) and isinstance(i.target(), Deref):
+        if isinstance(i, Instr) and isinstance(i.source(), Deref) and isinstance(i.target(), Deref):
             # two memory access, do patch instration operation
             # build two instration and add into list
             # I assume %rax as a intermediate register and always available
@@ -220,9 +243,10 @@ class Compiler:
         if isinstance(p.body, dict):
             for label, instrs in p.body.items():
                 for instr in instrs:
-                    for arg in instr.args:
-                        if isinstance(arg, Deref):
-                            max_offset = max(max_offset, arg.offset)
+                    if isinstance(instr, Instr):
+                        for arg in instr.args:
+                            if isinstance(arg, Deref):
+                                max_offset = max(max_offset, arg.offset)
             new_body = {}
             for label, instrs in p.body.items():
                 # instructions for stack allocations
@@ -243,9 +267,10 @@ class Compiler:
         else:  
             # If we have a single main function
             for instr in p.body:
-                for arg in instr.args:
-                    if isinstance(arg, Deref):
-                        max_offset = max(max_offset, arg.offset)
+                if isinstance(instr, Instr):
+                    for arg in instr.args:
+                        if isinstance(arg, Deref):
+                            max_offset = max(max_offset, arg.offset)
             prelude = [
                 Instr("pushq", [Reg("rbp")]),
                 Instr("movq", [Reg("rsp"), Reg("rbp")]),
@@ -253,7 +278,7 @@ class Compiler:
             ]
             
             conclusion = [
-                Instr("addq", Immediate(max_offset), Reg("rsp")),
+                Instr("addq", [Immediate(max_offset), Reg("rsp")]),
                 Instr("popq", [Reg("rbp")]),
                 Instr("retq", [])
             ]
