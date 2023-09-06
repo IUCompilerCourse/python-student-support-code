@@ -16,7 +16,6 @@ class Compiler:
     ############################################################################
 
     def rco_exp(self, e: expr, need_atomic: bool) -> Tuple[expr, Temporaries]:
-
         if isinstance(e, Constant):
             return e, []
         elif isinstance(e, Name):
@@ -28,14 +27,24 @@ class Compiler:
         elif isinstance(e, BinOp):
             lhs, lhs_temporaries = self.rco_exp(e.left, True)
             rhs, rhs_temporaries = self.rco_exp(e.right, True)
-
             temp = Name(generate_name("temp"))
-            return temp, lhs_temporaries + rhs_temporaries + [(temp, BinOp(lhs, e.op, rhs))]
+            return temp, lhs_temporaries + rhs_temporaries + [Assign([temp], BinOp(lhs, e.op, rhs))]
         elif isinstance(e, UnaryOp):
             operand, operand_temporaries = self.rco_exp(e.operand, True)
-            temp = generate_name("temp")
-            return temp, operand_temporaries + [temp, UnaryOp(e.op, operand)]
-        print(e)
+            temp = Name(generate_name("temp"))
+            return temp, operand_temporaries + [Assign([temp], UnaryOp(e.op, operand))]
+        elif isinstance(e, Call):
+            f_exp = []
+            f_temporaries = []
+            for a in e.args:
+                t_exp, t_temp = self.rco_exp(a, True)
+                f_exp.append(t_exp)
+                f_temporaries += t_temp
+            if isinstance(e.func, Name) and e.func.id == "print":
+                return  Call(e.func, f_exp), f_temporaries
+            else:
+                temp = Name(generate_name("temp"))
+            return temp, f_temporaries + [Assign([temp], Call(e.func, f_exp))]
         raise Exception('rco_exp not implemented')
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
@@ -53,17 +62,19 @@ class Compiler:
         raise Exception('rco_stmt not implemented')
 
     def remove_complex_operands(self, p: Module) -> Module:
-
+        print(f"Original statements are, {p.body}\n\n")
         transformed_statements = []
         for stmt in p.body:
             rco_statements = self.rco_stmt(stmt)
-            transformed_statements.extend(rco_statements)
+            transformed_statements += rco_statements
 
         #Create a new Module with the transformed statements.
+        print("final statements are, ", transformed_statements)
+        #for i in transformed_statements:
+            #print(i)
         transformed_program = Module(transformed_statements)
-        
+        print("transformed program is, ", transformed_program)
         return transformed_program
-        raise Exception('remove_complex_operands not implemented')
         
 
     ############################################################################
@@ -74,18 +85,22 @@ class Compiler:
 
         # Implement the logic to select an argument for the target architecture.
         if isinstance(e, Name):
-            return Reg(e.name) # Assuming the name is a register
+            return Variable(e.id) 
         elif isinstance(e, Constant):
             return Immediate(e.value) # Assuming the value is an immediate value
-        else:
-            raise Exception('select_arg not implemented')
-    
+        elif isinstance(e, Call):
+            if isinstance(e.func, Name) and e.func.id == "print":  
+                
+            elif isinstance(e.func, Name) and e.func.id == "input_int":
+
+        raise Exception('select_arg not implemented')
+        
 
     def select_stmt(self, s: stmt) -> List[instr]:
         # Implement the logic to select instructions for a statement
         if isinstance(s, Assign):
-            target = self.select_arg(s.lhs)
-            source = self.select_arg(s.rhs)
+            target = self.select_arg(s.targets[0])
+            source = self.select_arg(s.value)
             return [Instr("movq", [source, target])] # Replace with actual instructions
         else:
             raise Exception('select_stmt not implemented')
