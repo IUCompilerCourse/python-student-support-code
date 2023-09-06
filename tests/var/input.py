@@ -1,1 +1,3 @@
-print(input_int())
+x = input_int()
+y = input_int()
+print(x+y)

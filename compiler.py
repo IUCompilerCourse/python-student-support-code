@@ -23,7 +23,7 @@ class Compiler:
                 return e, []
             else:
                 temp = Name(generate_name("temp"))
-                return temp, [(temp, e)]     
+                return temp, [Assign([temp], e)]     
         elif isinstance(e, BinOp):
             lhs, lhs_temporaries = self.rco_exp(e.left, True)
             rhs, rhs_temporaries = self.rco_exp(e.right, True)
@@ -41,25 +41,29 @@ class Compiler:
                 f_exp.append(t_exp)
                 f_temporaries += t_temp
             if isinstance(e.func, Name) and e.func.id == "print":
-                return  Call(e.func, f_exp), f_temporaries
+                return Call(e.func, f_exp), f_temporaries
+            elif isinstance(e.func, Name) and e.func.id == "input_int":
+                temp = Name(generate_name("temp"))
+                return temp, [Assign([temp], Call(e.func, []))]
             else:
                 temp = Name(generate_name("temp"))
-            return temp, f_temporaries + [Assign([temp], Call(e.func, f_exp))]
+                return temp, f_temporaries + [Assign([temp], Call(e.func, f_exp))]
         raise Exception('rco_exp not implemented')
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
-
         if isinstance(s, Assign):
-            target, target_temporaries = self.rco_exp(s.targets[0], False)
+            # Since the target is typically a simple variable, it doesn't need RCO.
+            # Just ensure it's in the proper format (a list with a single Name).
+            target = s.targets[0]
+            # Apply RCO to the source of the assignment.
             source, source_temporaries = self.rco_exp(s.value, True)
-            #Combine temporaries from the lhs and rhs..
-            all_temporaries = target_temporaries + source_temporaries
 
-            return all_temporaries + [Assign(target, source)]
+            return source_temporaries + [Assign([target], source)]
+        
         elif isinstance(s, Expr):
             expr, temporaries = self.rco_exp(s.value, True)
             return temporaries + [Expr(expr)]
-        raise Exception('rco_stmt not implemented')
+    
 
     def remove_complex_operands(self, p: Module) -> Module:
         transformed_statements = []
