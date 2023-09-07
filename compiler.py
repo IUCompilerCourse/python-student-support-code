@@ -27,8 +27,11 @@ class Compiler:
         elif isinstance(e, BinOp):
             lhs, lhs_temporaries = self.rco_exp(e.left, True)
             rhs, rhs_temporaries = self.rco_exp(e.right, True)
-            temp = Name(generate_name("temp"))
-            return temp, lhs_temporaries + rhs_temporaries + [Assign([temp], BinOp(lhs, e.op, rhs))]
+            if need_atomic:
+                temp = Name(generate_name("temp"))
+                return temp, lhs_temporaries + rhs_temporaries + [Assign([temp], BinOp(lhs, e.op, rhs))]
+            else:
+                return temp, lhs + rhs
         elif isinstance(e, UnaryOp):
             operand, operand_temporaries = self.rco_exp(e.operand, True)
             temp = Name(generate_name("temp"))
@@ -56,12 +59,13 @@ class Compiler:
             # Just ensure it's in the proper format (a list with a single Name).
             target = s.targets[0]
             # Apply RCO to the source of the assignment.
-            source, source_temporaries = self.rco_exp(s.value, True)
+            # need_atomic should be False because it only need an Expr, not an Atm
+            source, source_temporaries = self.rco_exp(s.value, False)
 
             return source_temporaries + [Assign([target], source)]
         
         elif isinstance(s, Expr):
-            expr, temporaries = self.rco_exp(s.value, True)
+            expr, temporaries = self.rco_exp(s.value, False)
             return temporaries + [Expr(expr)]
     
 
@@ -91,6 +95,7 @@ class Compiler:
         
 
     def select_stmt(self, s: stmt) -> List[instr]:
+        # here we need to enum all possible stmt
         if isinstance(s, Assign):
             target = self.select_arg(s.targets[0])
             if isinstance(s.value, BinOp):
