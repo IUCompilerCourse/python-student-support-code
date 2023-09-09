@@ -96,19 +96,20 @@ if __name__ == "__main__":
     print(repr(program_ast))
     print()
         
+    # Remove Complex Operands
+    program_ast = C.remove_complex_operands(program_ast)
+    print('After RCO')
+    print('Concrete Syntax:')
+    print(program_ast)
+    print('Abstract Syntax:')
+    print(repr(program_ast))
+    interp_and_check(program_filename, program_ast,
+                    interp_Lvar, 'remove complex operands')
+    print()
+      
     if False:
       # Move up each pass once it is completed 
       
-      # Remove Complex Operands
-      program_ast = C.remove_complex_operands(program_ast)
-      print('After RCO')
-      print('Concrete Syntax:')
-      print(program_ast)
-      print('Abstract Syntax:')
-      print(repr(program_ast))
-      interp_and_check(program_filename, program_ast,
-                      interp_Lvar, 'remove complex operands')
-      print()
 
       # Select Instructions
       program_ast = C.select_instructions(program_ast)

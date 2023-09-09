@@ -15,9 +15,27 @@ class Compiler:
     # Remove Complex Operands
     ############################################################################
 
-    def rco_exp(self, e: expr, need_atomic: bool) -> Tuple[expr, Temporaries]:
-        # YOUR CODE HERE
-        raise Exception('rco_exp not implemented')
+    def rco_exp(self, e: expr) -> Tuple[expr, Temporaries]:
+        match e:
+          case  Constant(int):
+            
+          case Call(Name('input_int'),[]):
+          
+          case UnaryOp(USub(), exp):
+             (new_exp, temps) = self.rco_exp(exp)
+             
+          case BinOp(exp1, Add(), exp2):
+             (new_exp1, temps1) = self.rco_exp(exp1)
+             (new_exp2, temps2) = self.rco_exp(exp2)
+          
+          case BinOp(exp1, Sub(), exp2):
+             (new_exp1, temps1) = self.rco_exp(exp1)
+             (new_exp2, temps2) = self.rco_exp(exp2)
+          
+          case Name(var):
+          
+          case _:
+            raise Exception('rco_exp unexpected ' + repr(e))
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
         # YOUR CODE HERE
