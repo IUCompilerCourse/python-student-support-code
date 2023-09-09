@@ -23,9 +23,9 @@ class Compiler:
         # YOUR CODE HERE
         raise Exception('rco_stmt not implemented')
 
-    # def remove_complex_operands(self, p: Module) -> Module:
-    #     # YOUR CODE HERE
-    #     raise Exception('remove_complex_operands not implemented')
+    def remove_complex_operands(self, p: Module) -> Module:
+        # YOUR CODE HERE
+        raise Exception('remove_complex_operands not implemented')
         
 
     ############################################################################
@@ -40,9 +40,9 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    # def select_instructions(self, p: Module) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
+    def select_instructions(self, p: Module) -> X86Program:
+        # YOUR CODE HERE
+        pass        
 
     ############################################################################
     # Assign Homes
@@ -57,14 +57,9 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    def assign_homes_instrs(self, ss: List[instr],
-                            home: Dict[Variable, arg]) -> List[instr]:
+    def assign_homes(self, p: X86Program) -> X86Program:
         # YOUR CODE HERE
         pass        
-
-    # def assign_homes(self, p: X86Program) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
 
     ############################################################################
     # Patch Instructions
@@ -74,19 +69,15 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    def patch_instrs(self, ss: List[instr]) -> List[instr]:
+    def patch_instructions(self, p: X86Program) -> X86Program:
         # YOUR CODE HERE
         pass        
-
-    # def patch_instructions(self, p: X86Program) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
 
     ############################################################################
     # Prelude & Conclusion
     ############################################################################
 
-    # def prelude_and_conclusion(self, p: X86Program) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
+    def prelude_and_conclusion(self, p: X86Program) -> X86Program:
+        # YOUR CODE HERE
+        pass        
 
