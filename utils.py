@@ -1199,19 +1199,6 @@ def compile_and_test(compiler, compiler_name,
     if 'source' in type_check_dict.keys():
         trace('\n# type checking source program\n')
         type_check_dict['source'](program)
-
-    passname = 'part_eval'
-    if hasattr(compiler, passname):
-        trace('\n# ' + passname + '\n')
-        program = compiler.part_eval(program)
-        trace(program)
-        trace('')
-        if passname in type_check_dict.keys():
-            type_check_dict[passname](program)
-        total_passes += 1
-        successful_passes += \
-            test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
     passname = 'shrink'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
@@ -1223,11 +1210,7 @@ def compile_and_test(compiler, compiler_name,
         total_passes += 1
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-        
-    
-
-        
+                      compiler_name)    
     passname = 'uniquify'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
