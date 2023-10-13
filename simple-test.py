@@ -80,7 +80,7 @@ if __name__ == "__main__":
       tests = [dirpath + t for t in filter(is_python_extension, filenames)]
       break
   else:
-      tests = [os.getcwd() + '/tests/var/' + 'sub-input.py']
+      tests = [os.getcwd() + '/tests/var/' + 'sub-input-flat.py']
       
   # Evaluate the compiler on each test program.
   for program_filename in tests:

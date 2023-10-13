@@ -56,8 +56,6 @@ class TypeCheckLany(TypeCheckLlambda):
       case TagOf(value):
         self.check_exp(value, AnyType(), env)
         return IntType()
-      case Call(Name('exit'), []):
-        return Bottom()
       case AnnLambda(params, returns, body):
         new_env = {x:t for (x,t) in env.items()}
         for (x,t) in params:

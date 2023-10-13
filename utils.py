@@ -1195,6 +1195,8 @@ def compile_and_test(compiler, compiler_name,
     trace('\n# source program: ' + os.path.basename(program_root) + '\n')
     trace(program)
     trace('')
+    trace(repr(program))
+    trace('')
 
     if 'source' in type_check_dict.keys():
         trace('\n# type checking source program\n')
@@ -1366,6 +1368,7 @@ def compile_and_test(compiler, compiler_name,
         trace('\n# ' + passname + '\n')
         program = compiler.remove_complex_operands(program)
         trace(program)
+        trace(repr(program))
         if passname in type_check_dict.keys():
             type_check_dict[passname](program)
         total_passes += 1
@@ -1378,6 +1381,7 @@ def compile_and_test(compiler, compiler_name,
         trace('\n# ' + passname + '\n')
         program = compiler.explicate_control(program)
         trace(program)
+        trace(repr(program))
         if passname in type_check_dict.keys():
             type_check_dict[passname](program)
             trace('type checking passed')

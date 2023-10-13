@@ -94,6 +94,8 @@ class TypeCheckLarray(TypeCheckLtup):
         return IntType()
       case AllocateArray(length, typ):
         return typ
+      case Call(Name('exit'), []):
+        return Bottom()
       case _:
         return super().type_check_exp(e, env)
 
