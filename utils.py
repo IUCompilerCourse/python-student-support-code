@@ -1201,7 +1201,6 @@ def compile_and_test(compiler, compiler_name,
     if 'source' in type_check_dict.keys():
         trace('\n# type checking source program\n')
         type_check_dict['source'](program)
-
     passname = 'shrink'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
@@ -1213,8 +1212,7 @@ def compile_and_test(compiler, compiler_name,
         total_passes += 1
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
-                      compiler_name)
-        
+                      compiler_name)    
     passname = 'uniquify'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
@@ -1434,7 +1432,6 @@ def compile_and_test(compiler, compiler_name,
             dest.write(str(program))
 
         total_passes += 1
-
         # Run the final x86 program
         emulate_x86 = False
         if emulate_x86:
@@ -1443,6 +1440,7 @@ def compile_and_test(compiler, compiler_name,
             sys.stdin = open(program_root + '.in', 'r')
             sys.stdout = open(program_root + '.out', 'w')
             interp_x86(program)
+            print() # print a newline to make diff happy
             sys.stdin = stdin
             sys.stdout = stdout
         else:
@@ -1453,7 +1451,10 @@ def compile_and_test(compiler, compiler_name,
             input_file = program_root + '.in'
             output_file = program_root + '.out'
             os.system('./a.out < ' + input_file + ' > ' + output_file)
-
+            # print a newline to make diff happy
+            with open(output_file, 'a') as file:
+                # Write newline
+                file.write("\n")
         result = os.system('diff' + ' -b ' + program_root + '.out ' \
                            + program_root + '.golden')
         if result == 0:
