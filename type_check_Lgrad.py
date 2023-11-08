@@ -24,6 +24,10 @@ class TypeCheckLgrad(TypeCheckLlambda):
 
   def consistent(self, t1, t2):
       match (t1, t2):
+        case (Bottom(), _):
+          return True
+        case (_, Bottom()):
+          return True
         case (AnyType(), _):
           return True
         case (_, AnyType()):
@@ -40,6 +44,10 @@ class TypeCheckLgrad(TypeCheckLlambda):
 
   def join_types(self, t1, t2):
       match (t1, t2):
+        case (Bottom(), _):
+          return t2
+        case (_, Bottom()):
+          return t1
         case (AnyType(), _):
           return t2
         case (_, AnyType()):
@@ -67,6 +75,8 @@ class TypeCheckLgrad(TypeCheckLlambda):
         return IntType()
       case Call(Name('input_int'), []):
         return IntType()
+      case Call(Name('exit'), []):
+        return Bottom()
       case BinOp(left, op, right) if isinstance(op, Add) \
           or isinstance(op, Sub) or isinstance(op, Mult):
         left_type = self.type_check_exp(left, env)
@@ -111,6 +121,9 @@ class TypeCheckLgrad(TypeCheckLlambda):
         right_type = self.type_check_exp(right, env)
         self.check_consistent(right_type, IntType(), right)
         return BoolType()
+      case Begin(ss, e):
+        self.type_check_stmts(ss, env, None)
+        return self.type_check_exp(e, env)
       # Cases for Ltup
       case Compare(left, [cmp], [right]) if isinstance(cmp, Is):
         left_type = self.type_check_exp(left, env)

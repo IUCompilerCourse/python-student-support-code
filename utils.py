@@ -1252,6 +1252,19 @@ def compile_and_test(compiler, compiler_name,
             test_pass(passname, interp_dict, program_root, program,
                       compiler_name)
 
+    passname = 'check_bounds'
+    if hasattr(compiler, passname):
+        trace('\n# ' + passname + '\n')
+        program = compiler.check_bounds(program)
+        trace(program)
+        trace('')
+        if passname in type_check_dict.keys():
+            type_check_dict[passname](program)
+        total_passes += 1
+        successful_passes += \
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
+        
     passname = 'erase_types'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
@@ -1345,6 +1358,7 @@ def compile_and_test(compiler, compiler_name,
         if passname in type_check_dict.keys():
             trace('type checking after ' + passname + '\n')
             type_check_dict[passname](program)
+            trace('type checking passed')
         total_passes += 1
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
@@ -1358,6 +1372,7 @@ def compile_and_test(compiler, compiler_name,
         if passname in type_check_dict.keys():
             trace('type checking after ' + passname + '\n')
             type_check_dict[passname](program)
+            trace('type checking passed')
         total_passes += 1
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
@@ -1370,7 +1385,9 @@ def compile_and_test(compiler, compiler_name,
         trace(program)
         trace(repr(program))
         if passname in type_check_dict.keys():
+            trace('type checking after ' + passname + '\n')
             type_check_dict[passname](program)
+            trace('type checking passed')
         total_passes += 1
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
@@ -1383,6 +1400,7 @@ def compile_and_test(compiler, compiler_name,
         trace(program)
         trace(repr(program))
         if passname in type_check_dict.keys():
+            trace('type checking after ' + passname + '\n')
             type_check_dict[passname](program)
             trace('type checking passed')
         else:

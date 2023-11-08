@@ -83,6 +83,8 @@ class TypeCheckCarray(TypeCheckCtup):
               return Bottom()
             case _:
               raise Exception('error, expected a list, not ' + repr(tup_t))
+        case Call(Name('exit'), []):
+          return Bottom()
         case BinOp(left, Mult(), right):
           l = self.type_check_exp(left, env)
           self.check_type_equal(l, IntType(), left)
