@@ -828,7 +828,7 @@ class ListType(Type):
 
 
 @dataclass(eq=True)
-class FunctionType:
+class FunctionType(Type):
     param_types: list[Type]
     ret_type: Type
     __match_args__ = ("param_types", "ret_type")
@@ -838,14 +838,14 @@ class FunctionType:
                + ', ' + str(self.ret_type) + ']'
 
 @dataclass(eq=True)
-class GenericVar:
+class GenericVar(Type):
     id: str
     __match_args__ = ("id",)
     def __str__(self):
         return str(self.id)
     
 @dataclass(eq=True)
-class AllType:
+class AllType(Type):
     params: list[str]
     typ: Type
     __match_args__ = ("params", "typ")
