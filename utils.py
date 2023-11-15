@@ -1524,16 +1524,16 @@ def compile(compiler, compiler_name, type_check_L, type_check_C,
         program = compiler.convert_assignments(program)
         trace_ast_and_concrete(program)
 
-    if hasattr(compiler, 'limit_functions'):
-        trace('\n# limit functions\n')
-        type_check_L(program)
-        program = compiler.limit_functions(program)
-        trace_ast_and_concrete(program)
-
     if hasattr(compiler, 'convert_to_closures'):
         trace('\n# closure conversion\n')
         type_check_L(program)
         program = compiler.convert_to_closures(program)
+        trace_ast_and_concrete(program)
+
+    if hasattr(compiler, 'limit_functions'):
+        trace('\n# limit functions\n')
+        type_check_L(program)
+        program = compiler.limit_functions(program)
         trace_ast_and_concrete(program)
 
     if hasattr(compiler, 'expose_allocation'):
