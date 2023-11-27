@@ -52,6 +52,8 @@ repository.
   - `num_params`: This field needs to be added to `FunctionDef` objects. The
     value of this field will be the number of parameters that the function
     associated with the `FunctionDef` object accepts.
-  - `num_root_spills`: This field needs to be added to both `X86Program` and
-    `FunctionDef` objects. The value of this field will be the number of tuple
-    variables that have been spilled into the root stack.
+  - `num_root_spills`: This field needs to be added to `X86Program` objects if
+    they don't contain `FunctionDef` objects in their body. Otherwise add this
+    field to every `FunctionDef` object in the body of `X86Program` and not to
+    the `X86Program` object itself. The value of this field will be the number
+    of tuple variables that have been spilled into the root stack.
