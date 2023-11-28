@@ -47,13 +47,12 @@ repository.
 
 * Since your x86 code is interpreted in Racket, any errors occurring during
   interpretation will show up in the output diff and not as a Python exception.
-* You will need to add the following fields to a root AST dataclass object or
-  a `FunctionDef` dataclass object before passing it to the interpreter:
-  - `num_params`: This field needs to be added to `FunctionDef` objects. The
-    value of this field will be the number of parameters that the function
-    associated with the `FunctionDef` object accepts.
-  - `num_root_spills`: This field needs to be added to `X86Program` objects if
-    they don't contain `FunctionDef` objects in their body. Otherwise add this
-    field to every `FunctionDef` object in the body of `X86Program` and not to
-    the `X86Program` object itself. The value of this field will be the number
+* When implementing the languages up to Ltuple, add the `num_root_spills` field to the
+  `X86Program` object. Initialize the field `num_root_spills` to the number
+  of tuple variables that have been spilled into the root stack.
+* When implementing the languages beginning with Lfun and after,  add the following fields to every `FunctionDef` object:
+  - `num_root_spills`: Initialize this field to the number
     of tuple variables that have been spilled into the root stack.
+  - `num_params`: Initialize this field to the number of parameters that the function
+    had after the limit functions pass but before the select instructions pass.
+  
