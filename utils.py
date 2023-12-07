@@ -111,7 +111,7 @@ AnnAssign.__str__ = str_AnnAssign
 
 def repr_AnnAssign(self):
     return indent_stmt() + 'AnnAssign(' + repr(self.target) + ', ' \
-           + repr(self.annotation) + ', ' + repr(self.value) + ')'
+           + repr(self.annotation) + ', ' + repr(self.value) + repr(self.simple) + ')'
 
 
 AnnAssign.__repr__ = repr_AnnAssign
