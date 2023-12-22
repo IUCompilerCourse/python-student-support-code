@@ -406,6 +406,24 @@ class X86Emulator:
                 self.eval_instrs(blocks[target], blocks, output)
                 return # after jumping, toss continuation
 
+            elif instr.data == 'andq':
+                a1, a2 = instr.children
+                v1 = self.eval_arg(a1)
+                v2 = self.eval_arg(a2)
+                self.store_arg(a2, and64(v1, v2))
+                
+            elif instr.data == 'salq':
+                a1, a2 = instr.children
+                v1 = self.eval_arg(a1)
+                v2 = self.eval_arg(a2)
+                self.store_arg(a2, v2 << v1)
+
+            elif instr.data == 'sarq':
+                a1, a2 = instr.children
+                v1 = self.eval_arg(a1)
+                v2 = self.eval_arg(a2)
+                self.store_arg(a2, v2 >> v1)
+
             else:
                 raise RuntimeError(f'Unknown instruction: {instr.data}')
 
