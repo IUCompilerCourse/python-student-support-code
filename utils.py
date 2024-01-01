@@ -1084,6 +1084,18 @@ def mul64(x,y):
 def neg64(x):
     return to_signed(-x)
 
+def shiftra64(x,y):
+    return to_signed(x>>y)
+
+def shiftl64(x,y):
+    return to_signed(x<<y)
+
+def and64(x,y):
+    return to_signed(x&y)
+
+def or64(x,y):
+    return to_signed(x|y)
+
 def xor64(x,y):
     return to_signed(x^y)
 
