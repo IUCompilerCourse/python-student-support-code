@@ -431,7 +431,7 @@ def str_LtE(self):
     return '<='
 
 
-LtE.__str__ = str_Lt
+LtE.__str__ = str_LtE
 
 
 def repr_LtE(self):
