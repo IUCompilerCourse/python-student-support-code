@@ -16,67 +16,16 @@ class Compiler:
     ############################################################################
 
     def rco_exp(self, e: expr, need_atomic : bool) -> Tuple[expr, Temporaries]:
-        match e:
-          case  Constant(n):
-            return Constant(n), []
-          case Call(Name('input_int'),[]):
-            if need_atomic:
-              tmp = Name(generate_name('tmp'))
-              return tmp, [(tmp, Call(Name('input_int'),[]))]
-            else:
-              return Call(Name('input_int'),[]), []
-          case UnaryOp(USub(), exp):
-             (atm, temps) = self.rco_exp(exp, True)
-             usub = UnaryOp(USub(), atm)
-             if need_atomic:
-               tmp = Name(generate_name('tmp'))
-               return tmp, temps + [(tmp, usub)]
-             else:
-               return usub, temps
-          case BinOp(exp1, Add(), exp2):
-             (atm1, temps1) = self.rco_exp(exp1, True)
-             (atm2, temps2) = self.rco_exp(exp2, True)
-             add = BinOp(atm1, Add(), atm2)
-             if need_atomic:
-               tmp = Name(generate_name('tmp'))
-               return tmp, temps1 + temps2 + [(tmp, add)]
-             else:
-               return add, temps1 + temps2
-          case BinOp(exp1, Sub(), exp2):
-             (atm1, temps1) = self.rco_exp(exp1, True)
-             (atm2, temps2) = self.rco_exp(exp2, True)
-             sub = BinOp(atm1, Sub(), atm2)
-             if need_atomic:
-               tmp = Name(generate_name('tmp'))
-               return tmp, temps1 + temps2 + [(tmp, sub)]
-             else:
-               return sub, temps1 + temps2
-          case Name(var):
-             return Name(var), []
-          case _:
-            raise Exception('rco_exp unexpected ' + repr(e))
+        # YOUR CODE HERE
+        pass        
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
-      match s:
-        case Expr(Call(Name('print'), [exp])):
-           (atm, temps) = self.rco_exp(exp, True)
-           return [Assign([var], init) for (var,init) in temps] + [Expr(Call(Name('print'), [atm]))]
-        case Expr(exp) :
-           (atm, temps) = self.rco_exp(exp, False)
-           return [Assign([var], init) for (var,init) in temps]
-        case Assign([Name(var)], exp):
-           (atm, temps) = self.rco_exp(exp, False)
-           return [Assign([x], init) for (x,init) in temps] + [Assign([Name(var)], atm)]
-        case _:
-          raise Exception('rco_stmt not implemented')
+        # YOUR CODE HERE
+        pass        
 
     def remove_complex_operands(self, p: Module) -> Module:
-        match p:
-          case Module(ss):
-            sss = [self.rco_stmt(s) for s in ss]
-            return Module(sum(sss, []))
-        raise Exception('remove_complex_operands not implemented')
-        
+        # YOUR CODE HERE
+        pass                
 
     ############################################################################
     # Select Instructions
