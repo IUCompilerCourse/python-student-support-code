@@ -31,6 +31,8 @@ class Compiler:
     # Select Instructions
     ############################################################################
 
+    # The expression e passed to select_arg should furthermore be an atom.
+    # (But there is no type for atoms, so the type of e is given as expr.)
     def select_arg(self, e: expr) -> arg:
         # YOUR CODE HERE
         pass        
