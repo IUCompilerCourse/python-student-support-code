@@ -65,7 +65,7 @@ class Callq(instr):
     num_args: int
 
     def __str__(self):
-        return indent_stmt() + 'callq' + ' ' + self.func + '\n'
+        return indent_stmt() + 'callq' + ' ' + label_name(self.func) + '\n'
 
 @dataclass(frozen=True, eq=False)
 class IndirectCallq(instr):
@@ -81,14 +81,14 @@ class JumpIf(instr):
     label: str
 
     def __str__(self):
-        return indent_stmt() + 'j' + self.cc + ' ' + self.label + '\n'
+        return indent_stmt() + 'j' + self.cc + ' ' + label_name(self.label) + '\n'
 
 @dataclass(frozen=True, eq=False)
 class Jump(instr):
     label: str
 
     def __str__(self):
-        return indent_stmt() + 'jmp ' + self.label + '\n'
+        return indent_stmt() + 'jmp ' + label_name(self.label) + '\n'
 
 @dataclass(frozen=True, eq=False)
 class IndirectJump(instr):
@@ -143,4 +143,4 @@ class Global(arg):
     name: str
 
     def __str__(self):
-        return self.name + "(%rip)"
+        return label_name(self.name) + "(%rip)"

@@ -55,11 +55,11 @@ class X86Emulator:
         self.log('========== STARTING EXECUTION ==============================')
 
         # start evaluating at "main" or at "start"
-        if label_name('main') in blocks.keys():
-            self.eval_instrs(blocks[label_name('main')], blocks,
+        if 'main' in blocks.keys():
+            self.eval_instrs(blocks['main'], blocks,
                              output)
-        elif label_name('start') in blocks.keys():
-            self.eval_instrs(blocks[label_name('start')], blocks,
+        elif 'start' in blocks.keys():
+            self.eval_instrs(blocks['start'], blocks,
                              output)
 
 
@@ -284,7 +284,7 @@ class X86Emulator:
                 if perform_jump:
                     if target in blocks.keys():
                         self.eval_instrs(blocks[target], blocks, output)
-                    elif target == label_name('conclusion'):
+                    elif target == 'conclusion':
                         return
                     else:
                         raise Exception('jump to invalid target ' + target)
@@ -313,13 +313,13 @@ class X86Emulator:
 
             elif instr.data == 'callq':
                 target = str(instr.children[0])
-                if target == label_name('print_int'):
+                if target == 'print_int':
                     self.log(f'CALL TO print_int: {self.registers["rdi"]}')
                     output.append(self.registers['rdi'])
                     if self.logging:
                         print(self.print_state())
 
-                elif target == label_name('read_int'):
+                elif target == 'read_int':
                     self.registers['rax'] = input_int()
                     self.log(f'CALL TO read_int: {self.registers["rax"]}')
                     if self.logging:
