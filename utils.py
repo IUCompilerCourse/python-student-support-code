@@ -1202,6 +1202,20 @@ def compile_and_test(compiler, compiler_name,
         trace('\n# type checking source program\n')
         type_check_dict['source'](program)
 
+
+    passname = 'partial_eval'
+    if hasattr(compiler, passname):
+        trace('\n# ' + passname + '\n')
+        program = compiler.partial_eval(program)
+        trace(program)
+        trace('')
+        if passname in type_check_dict.keys():
+            type_check_dict[passname](program)
+        total_passes += 1
+        successful_passes += \
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
+
     passname = 'shrink'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
@@ -1501,6 +1515,11 @@ def compile(compiler, compiler_name, type_check_L, type_check_C,
     trace('\n# type check\n')
     type_check_L(program)
     trace_ast_and_concrete(program)
+
+    if hasattr(compiler, 'partial_eval'):
+        trace('\n# partial_eval\n')
+        program = compiler.partial_eval(program)
+        trace_ast_and_concrete(program)
 
     if hasattr(compiler, 'shrink'):
         trace('\n# shrink\n')
