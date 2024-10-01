@@ -15,10 +15,10 @@ class X86Program:
         result = ''
         if isinstance(self.body, dict):
             for (l,ss) in self.body.items():
-                if l == label_name('main'):
+                if l == 'main':
                     result += '\t.globl ' + label_name('main') + '\n'
                 result += '\t.align 16\n'
-                result += l + ':\n'
+                result += label_name(l) + ':\n'
                 indent()
                 result += ''.join([str(s) for s in ss]) + '\n'
                 dedent()
