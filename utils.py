@@ -1479,7 +1479,7 @@ def compile_and_test(compiler, compiler_name,
             sys.stdout = stdout
         else:
             if platform == 'darwin':
-                os.system('gcc -arch x86_64 runtime.o ' + x86_filename + ' -z noexecstack')
+                os.system('gcc -arch x86_64 runtime.o ' + x86_filename)
             else:
                 os.system('gcc runtime.o ' + x86_filename + ' -z noexecstack')
             input_file = program_root + '.in'
