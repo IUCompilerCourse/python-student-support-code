@@ -16,7 +16,7 @@ compile the runtime:
    gcc -c -g -std=c99 -arch x86_64 runtime.c
 ```
 
-# Using the Racket x86 interpreters
+# Using the Racket x86 interpreters (starting from the Tuples compiler)
 
 This section describes how you can use `racket_interp_x86` and
 `racket_interp_pseudo_x86` interpreters defined in the
