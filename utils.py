@@ -1087,6 +1087,9 @@ def neg64(x):
 def xor64(x,y):
     return to_signed(x^y)
 
+def and64(x,y):
+    return to_singed(x&y)
+
 def is_int64(x) -> bool:
     return isinstance(x,int) and (x >= min_int64 and x <= max_int64)
 
