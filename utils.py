@@ -1491,9 +1491,10 @@ def compile_and_test(compiler, compiler_name,
         if result == 0:
             successful_passes += 1
             successful_test = 1
+            print('compiler ' + compiler_name + ' passed test ' + os.path.basename(program_root))
         else:
             print('compiler ' + compiler_name + ', executable failed' \
-                  + ' on test ' + program_root)
+                  + ' on test ' + os.path.basename(program_root))
     return (successful_passes, total_passes, successful_test)
 
 
