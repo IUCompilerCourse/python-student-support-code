@@ -323,7 +323,7 @@ def str_If(self):
     thn = ''.join([str(s) for s in self.body])
     els = ''.join([str(s) for s in self.orelse])
     dedent()
-    return header + thn + indent_stmt() + 'else:\n' + els
+    return header + thn + '\n' + indent_stmt() + 'else:\n' + els
 
 
 If.__str__ = str_If
