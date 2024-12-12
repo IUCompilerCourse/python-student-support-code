@@ -61,7 +61,7 @@ Module.__repr__ = repr_Module
 
 
 def str_Expr(self):
-    return indent_stmt() + str(self.value) + '\n'
+    return indent_stmt() + str(self.value)
 
 
 Expr.__str__ = str_Expr
@@ -75,7 +75,7 @@ Expr.__repr__ = repr_Expr
 
 
 def str_Pass(self):
-    return indent_stmt() + 'pass\n'
+    return indent_stmt() + 'pass'
 
 
 Pass.__str__ = str_Pass
@@ -89,7 +89,7 @@ Pass.__repr__ = repr_Pass
 
 
 def str_Assign(self):
-    return indent_stmt() + str(self.targets[0]) + ' = ' + str(self.value) + '\n'
+    return indent_stmt() + str(self.targets[0]) + ' = ' + str(self.value)
 
 
 Assign.__str__ = str_Assign
@@ -103,7 +103,7 @@ Assign.__repr__ = repr_Assign
 
 
 def str_AnnAssign(self):
-    return indent_stmt() + str(self.target) + ' : ' + str(self.annotation) + ' = ' + str(self.value) + '\n'
+    return indent_stmt() + str(self.target) + ' : ' + str(self.annotation) + ' = ' + str(self.value)
 
 
 AnnAssign.__str__ = str_AnnAssign
@@ -118,7 +118,7 @@ AnnAssign.__repr__ = repr_AnnAssign
 
 
 def str_Return(self):
-    return indent_stmt() + 'return ' + str(self.value) + '\n'
+    return indent_stmt() + 'return ' + str(self.value)
 
 
 Return.__str__ = str_Return
@@ -539,7 +539,8 @@ def str_FunctionDef(self):
         for (l, ss) in self.body.items():
             body += l + ':\n'
             indent()
-            body += ''.join([str(s) for s in ss])
+            body += '\n'.join([str(s) for s in ss])
+            body += '\n'
             dedent()
     else:
         body = ''
