@@ -771,8 +771,8 @@ class Begin(expr):
 
     def __str__(self):
         indent()
-        stmts = ''.join([str(s) for s in self.body])
-        end = indent_stmt() + 'produce ' + str(self.result)
+        stmts = '\n'.join([str(s) for s in self.body])
+        end = '\n' + indent_stmt() + 'produce ' + str(self.result) + '\n'
         dedent()
         return '{\n' + stmts + end + '}'
 
