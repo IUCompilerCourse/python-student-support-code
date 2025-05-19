@@ -2,6 +2,8 @@ from ast import *
 from type_check_Lvar import TypeCheckLvar
 from utils import *
 
+# This is the type checker for Lif and LmonIf.
+
 class TypeCheckLif(TypeCheckLvar):
 
   # The following is not needed until Larray, for bounds checking,

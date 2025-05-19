@@ -3,6 +3,8 @@ from type_check_Lwhile import TypeCheckLwhile
 from utils import *
 import typing
 
+# This is the type checker for Ltup, Lalloc, and LMonAlloc.
+
 class TypeCheckLtup(TypeCheckLwhile):
 
   def check_type_equal(self, t1, t2, e):
