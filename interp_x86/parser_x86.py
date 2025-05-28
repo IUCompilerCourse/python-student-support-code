@@ -25,6 +25,9 @@ x86_parser = Lark(r"""
           | "setge" arg -> setge
           | "movzbq" arg "," arg -> movzbq
           | "xorq" arg "," arg -> xorq
+          | "andq" arg "," arg -> andq
+          | "salq" arg "," arg -> salq
+          | "sarq" arg "," arg -> sarq
           | "callq" CNAME -> callq
           | "callq" "*" arg -> indirect_callq
           | "pushq" arg -> pushq
@@ -81,6 +84,9 @@ x86_parser_instrs = Lark(r"""
           | "movzbq" arg "," arg -> movzbq
           | "xorq" arg "," arg -> xorq
           | "callq" CNAME -> callq
+          | "andq" arg "," arg -> andq
+          | "salq" arg "," arg -> salq
+          | "sarq" arg "," arg -> sarq
           | "callq" "*" arg -> indirect_callq
           | "pushq" arg -> pushq
           | "popq" arg -> popq
