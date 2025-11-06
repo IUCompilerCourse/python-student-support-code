@@ -27,7 +27,7 @@ Vertex = any
 ################################################################################
     
 class DirectedAdjList:
-    def __init__(self, edge_list=[], vertex_label=None,
+    def __init__(self, edge_list=None, vertex_label=None,
                  vertex_text=None,
                  edge_label=None, edge_color=None):
         self.out = {}
@@ -42,6 +42,8 @@ class DirectedAdjList:
         self.edge_label = edge_label
         self.edge_color = edge_color
         self.edge_set = set()
+        if not edge_list:
+            return
         for e in edge_list:
           if isinstance(e, Edge):
             self.add_edge(e.source, e.target)
