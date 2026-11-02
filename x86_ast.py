@@ -16,15 +16,15 @@ class X86Program:
         if isinstance(self.body, dict):
             for (l,ss) in self.body.items():
                 if l == 'main':
-                    result += '\t.globl ' + label_name('main') + '\n'
-                result += '\t.align 16\n'
+                    result += '.globl ' + label_name('main') + '\n'
+                result += '.align 16\n'
                 result += label_name(l) + ':\n'
                 indent()
                 result += '\n'.join([str(s) for s in ss]) + '\n'
                 result += '\n'
                 dedent()
         else:
-            result += '\t.globl ' + label_name('main') + '\n' + \
+            result += '.globl ' + label_name('main') + '\n' + \
                       label_name('main') + ':\n'
             indent()
             result += '\n'.join([str(s) for s in self.body])

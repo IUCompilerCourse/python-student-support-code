@@ -44,9 +44,7 @@ def dedent():
 
 
 def str_Module(self):
-    indent()
-    body = ''.join([str(s) for s in self.body])
-    dedent()
+    body = '\n'.join([str(s) for s in self.body])
     return body
 
 
@@ -672,7 +670,7 @@ class Inst(expr):
 
     def __str__(self):
         return str(self.generic) + str(self.type_args)
-    
+
 # An uninitialized value of a given type.
 # Needed for boxing local variables.
 @dataclass
@@ -690,13 +688,14 @@ class CProgram:
     body: list[stmt]
 
     def __str__(self):
-        result = ''
+        result = []
         for (l, ss) in self.body.items():
-            result += l + ':\n'
+            block = l + ':\n'
             indent()
-            result += ''.join([str(s) for s in ss]) + '\n'
+            block += '\n'.join([str(s) for s in ss])
             dedent()
-        return result
+            result.append(block)
+        return '\n\n'.join(result)
 
 
 @dataclass
@@ -714,7 +713,7 @@ class Goto(stmt):
     __match_args__ = ("label",)
 
     def __str__(self):
-        return indent_stmt() + 'goto ' + self.label + '\n'
+        return indent_stmt() + 'goto ' + self.label
 
 
 @dataclass
@@ -772,9 +771,10 @@ class Begin(expr):
     def __str__(self):
         indent()
         stmts = '\n'.join([str(s) for s in self.body])
-        end = '\n' + indent_stmt() + 'produce ' + str(self.result) + '\n'
+        stmts += '\n' if self.body else ''
+        end = indent_stmt() + 'produce ' + str(self.result) + '\n'
         dedent()
-        return '{\n' + stmts + end + '}'
+        return '{\n' + stmts + end + indent_stmt() + '}'
 
 
 @dataclass
@@ -844,7 +844,7 @@ class GenericVar(Type):
     __match_args__ = ("id",)
     def __str__(self):
         return str(self.id)
-    
+
 @dataclass(eq=True)
 class AllType(Type):
     params: list[str]
@@ -1229,7 +1229,7 @@ def compile_and_test(compiler, compiler_name,
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
                       compiler_name)
-        
+
     passname = 'uniquify'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
@@ -1279,7 +1279,7 @@ def compile_and_test(compiler, compiler_name,
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
                       compiler_name)
-        
+
     passname = 'erase_types'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
@@ -1292,7 +1292,7 @@ def compile_and_test(compiler, compiler_name,
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
                       compiler_name)
-        
+
     passname = 'cast_insert'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
