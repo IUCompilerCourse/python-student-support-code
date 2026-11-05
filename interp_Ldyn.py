@@ -139,7 +139,7 @@ class InterpLdyn(InterpLlambda):
       case While(test, body, []):
         v = self.interp_exp(test, env)
         if self.untag(v, 'bool', test):
-            self.interp_stmts(body + [s] + cont, env)
+            return self.interp_stmts(body + [s] + cont, env)
         else:
           return self.interp_stmts(cont, env)
     
