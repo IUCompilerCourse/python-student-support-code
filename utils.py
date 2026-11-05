@@ -1167,7 +1167,8 @@ def test_pass(passname, interp_dict, program_root, ast,
         sys.stdin = open(input_file, 'r')
         sys.stdout = open(output_file, 'w')
         interp_dict[passname](ast)
-        print() # print a newline to make diff happy
+        if sys.stdout.tell() > 0:
+            print() # terminate nonempty interpreter output for diff
         sys.stdin = stdin
         sys.stdout = stdout
         result = os.system('diff' + ' -b ' + output_file \
