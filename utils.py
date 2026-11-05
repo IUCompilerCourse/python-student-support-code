@@ -43,6 +43,11 @@ def dedent():
     indent_amount -= 2
 
 
+def str_stmts(stmts):
+    """Render statements with one separator, even for legacy trailing-newline printers."""
+    return '\n'.join(str(s).rstrip('\n') for s in stmts)
+
+
 def str_Module(self):
     body = '\n'.join([str(s) for s in self.body])
     return body
@@ -318,8 +323,8 @@ Call.__repr__ = repr_Call
 def str_If(self):
     header = indent_stmt() + 'if ' + str(self.test) + ':\n'
     indent()
-    thn = ''.join([str(s) for s in self.body])
-    els = ''.join([str(s) for s in self.orelse])
+    thn = str_stmts(self.body)
+    els = str_stmts(self.orelse)
     dedent()
     return header + thn + '\n' + indent_stmt() + 'else:\n' + els
 
@@ -353,7 +358,7 @@ IfExp.__repr__ = repr_IfExp
 def str_While(self):
     header = indent_stmt() + 'while ' + str(self.test) + ':\n'
     indent()
-    body = ''.join([str(s) for s in self.body])
+    body = str_stmts(self.body)
     dedent()
     return header + body
 
@@ -531,7 +536,7 @@ def str_FunctionDef(self):
         params = ', '.join([x + ' : ' + str(t) for (x, t) in self.args])
     indent()
     if isinstance(self.body, list):
-        body = ''.join([str(s) for s in self.body])
+        body = str_stmts(self.body)
     elif isinstance(self.body, dict):
         body = ''
         for (l, ss) in self.body.items():
