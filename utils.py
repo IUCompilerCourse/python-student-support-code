@@ -758,6 +758,9 @@ class UncheckedCast(expr):
     ty: Type
     __match_args__ = ("exp","ty")
 
+    def __str__(self):
+        return '(' + str(self.exp) + ' : _ => ' + str(self.ty) + ')'
+
 @dataclass
 class Collect(stmt):
     size: int
