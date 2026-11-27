@@ -6,14 +6,13 @@ import typing
 class TypeCheckLarray(TypeCheckLtup):
 
   def check_type_equal(self, t1, t2, e):
-    match t1:
-      case ListType(ty1):
-        match t2:
-          case ListType(ty2):
-              self.check_type_equal(ty1, ty2, e)
-          case _:
-            raise Exception('error: ' + repr(t1) + ' != ' + repr(t2) \
-                      + ' in ' + repr(e))
+    match (t1, t2):
+      case (Bottom(), _):       # bounds checking -> exit
+        pass
+      case (_, Bottom()):
+        pass
+      case (ListType(ty1), ListType(ty2)):
+        self.check_type_equal(ty1, ty2, e)
       case _:
         super().check_type_equal(t1, t2, e)
     
@@ -85,7 +84,9 @@ class TypeCheckLarray(TypeCheckLtup):
           case Bottom():
             return VoidType()
           case _:
-            raise Exception('type_check_stmts: unexpected ' + repr(tup_t))
+            raise Exception('type_check_exp: unexpected ' + repr(tup_t))
+      case Call(Name('exit'), []):
+        return Bottom()
       case BinOp(left, Mult(), right):
         l = self.type_check_exp(left, env)
         self.check_type_equal(l, IntType(), left)
@@ -111,7 +112,11 @@ class TypeCheckLarray(TypeCheckLtup):
           case TupleType(ts):
             match index:
               case Constant(i):
-                self.check_type_equal(ts[i], value_t, ss[0])
+                if 0 <= i and i < len(ts):
+                  self.check_type_equal(ts[i], value_t, ss[0])
+                else:
+                  raise Exception('subscript ' + str(i) + ' not in range of '
+                                  + str(tup_t) + ' in\n' + str(ss[0]))
               case _:
                 raise Exception('subscript required constant integer index')
           case ListType(ty):

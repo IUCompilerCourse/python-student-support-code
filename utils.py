@@ -43,10 +43,13 @@ def dedent():
     indent_amount -= 2
 
 
+def str_stmts(stmts):
+    """Render statements with one separator, even for legacy trailing-newline printers."""
+    return '\n'.join(str(s).rstrip('\n') for s in stmts)
+
+
 def str_Module(self):
-    indent()
-    body = ''.join([str(s) for s in self.body])
-    dedent()
+    body = '\n'.join([str(s) for s in self.body])
     return body
 
 
@@ -61,7 +64,7 @@ Module.__repr__ = repr_Module
 
 
 def str_Expr(self):
-    return indent_stmt() + str(self.value) + '\n'
+    return indent_stmt() + str(self.value)
 
 
 Expr.__str__ = str_Expr
@@ -75,7 +78,7 @@ Expr.__repr__ = repr_Expr
 
 
 def str_Pass(self):
-    return indent_stmt() + 'pass\n'
+    return indent_stmt() + 'pass'
 
 
 Pass.__str__ = str_Pass
@@ -89,7 +92,7 @@ Pass.__repr__ = repr_Pass
 
 
 def str_Assign(self):
-    return indent_stmt() + str(self.targets[0]) + ' = ' + str(self.value) + '\n'
+    return indent_stmt() + str(self.targets[0]) + ' = ' + str(self.value)
 
 
 Assign.__str__ = str_Assign
@@ -103,7 +106,7 @@ Assign.__repr__ = repr_Assign
 
 
 def str_AnnAssign(self):
-    return indent_stmt() + str(self.target) + ' : ' + str(self.annotation) + ' = ' + str(self.value) + '\n'
+    return indent_stmt() + str(self.target) + ' : ' + str(self.annotation) + ' = ' + str(self.value)
 
 
 AnnAssign.__str__ = str_AnnAssign
@@ -111,14 +114,14 @@ AnnAssign.__str__ = str_AnnAssign
 
 def repr_AnnAssign(self):
     return indent_stmt() + 'AnnAssign(' + repr(self.target) + ', ' \
-           + repr(self.annotation) + ', ' + repr(self.value) + ')'
+           + repr(self.annotation) + ', ' + repr(self.value) + repr(self.simple) + ')'
 
 
 AnnAssign.__repr__ = repr_AnnAssign
 
 
 def str_Return(self):
-    return indent_stmt() + 'return ' + str(self.value) + '\n'
+    return indent_stmt() + 'return ' + str(self.value)
 
 
 Return.__str__ = str_Return
@@ -289,7 +292,7 @@ Not.__repr__ = repr_Not
 
 
 def str_UnaryOp(self):
-    return str(self.op) + ' ' + str(self.operand)
+    return str(self.op) + '(' + str(self.operand) + ')'
 
 
 UnaryOp.__str__ = str_UnaryOp
@@ -320,10 +323,10 @@ Call.__repr__ = repr_Call
 def str_If(self):
     header = indent_stmt() + 'if ' + str(self.test) + ':\n'
     indent()
-    thn = ''.join([str(s) for s in self.body])
-    els = ''.join([str(s) for s in self.orelse])
+    thn = str_stmts(self.body)
+    els = str_stmts(self.orelse)
     dedent()
-    return header + thn + indent_stmt() + 'else:\n' + els
+    return header + thn + '\n' + indent_stmt() + 'else:\n' + els
 
 
 If.__str__ = str_If
@@ -355,7 +358,7 @@ IfExp.__repr__ = repr_IfExp
 def str_While(self):
     header = indent_stmt() + 'while ' + str(self.test) + ':\n'
     indent()
-    body = ''.join([str(s) for s in self.body])
+    body = str_stmts(self.body)
     dedent()
     return header + body
 
@@ -431,7 +434,7 @@ def str_LtE(self):
     return '<='
 
 
-LtE.__str__ = str_Lt
+LtE.__str__ = str_LtE
 
 
 def repr_LtE(self):
@@ -533,13 +536,14 @@ def str_FunctionDef(self):
         params = ', '.join([x + ' : ' + str(t) for (x, t) in self.args])
     indent()
     if isinstance(self.body, list):
-        body = ''.join([str(s) for s in self.body])
+        body = str_stmts(self.body)
     elif isinstance(self.body, dict):
         body = ''
         for (l, ss) in self.body.items():
             body += l + ':\n'
             indent()
-            body += ''.join([str(s) for s in ss])
+            body += '\n'.join([str(s) for s in ss])
+            body += '\n'
             dedent()
     else:
         body = ''
@@ -671,7 +675,7 @@ class Inst(expr):
 
     def __str__(self):
         return str(self.generic) + str(self.type_args)
-    
+
 # An uninitialized value of a given type.
 # Needed for boxing local variables.
 @dataclass
@@ -689,13 +693,14 @@ class CProgram:
     body: list[stmt]
 
     def __str__(self):
-        result = ''
+        result = []
         for (l, ss) in self.body.items():
-            result += l + ':\n'
+            block = l + ':\n'
             indent()
-            result += ''.join([str(s) for s in ss]) + '\n'
+            block += '\n'.join([str(s) for s in ss])
             dedent()
-        return result
+            result.append(block)
+        return '\n\n'.join(result)
 
 
 @dataclass
@@ -713,7 +718,7 @@ class Goto(stmt):
     __match_args__ = ("label",)
 
     def __str__(self):
-        return indent_stmt() + 'goto ' + self.label + '\n'
+        return indent_stmt() + 'goto ' + self.label
 
 
 @dataclass
@@ -747,6 +752,14 @@ class AllocateClosure(expr):
         return 'alloc_clos(' + str(self.length) + ',' + str(self.ty) \
                + ',' + str(self.arity) + ')'
 
+@dataclass
+class UncheckedCast(expr):
+    exp: expr
+    ty: Type
+    __match_args__ = ("exp","ty")
+
+    def __str__(self):
+        return '(' + str(self.exp) + ' : _ => ' + str(self.ty) + ')'
 
 @dataclass
 class Collect(stmt):
@@ -765,10 +778,11 @@ class Begin(expr):
 
     def __str__(self):
         indent()
-        stmts = ''.join([str(s) for s in self.body])
-        end = indent_stmt() + str(self.result)
+        stmts = '\n'.join([str(s) for s in self.body])
+        stmts += '\n' if self.body else ''
+        end = indent_stmt() + 'produce ' + str(self.result) + '\n'
         dedent()
-        return 'begin:\n' + stmts + end
+        return '{\n' + stmts + end + indent_stmt() + '}'
 
 
 @dataclass
@@ -823,7 +837,7 @@ class ListType(Type):
 
 
 @dataclass(eq=True)
-class FunctionType:
+class FunctionType(Type):
     param_types: list[Type]
     ret_type: Type
     __match_args__ = ("param_types", "ret_type")
@@ -833,14 +847,14 @@ class FunctionType:
                + ', ' + str(self.ret_type) + ']'
 
 @dataclass(eq=True)
-class GenericVar:
+class GenericVar(Type):
     id: str
     __match_args__ = ("id",)
     def __str__(self):
         return str(self.id)
-    
+
 @dataclass(eq=True)
-class AllType:
+class AllType(Type):
     params: list[str]
     typ: Type
     __match_args__ = ("params", "typ")
@@ -877,7 +891,11 @@ class Closure(expr):
     __match_args__ = ("arity", "args")
 
     def __str__(self):
-        return 'closure{' + repr(self.arity) + '}(' + ', '.join([str(e) for e in self.args]) + ')'
+        if hasattr(self, 'has_type'):
+            typ = ':' + str(self.has_type)
+        else:
+            typ = ''
+        return 'closure{' + repr(self.arity) + '}(' + ', '.join([str(e) for e in self.args]) + ')' + typ
 
 
 @dataclass
@@ -1164,19 +1182,23 @@ def test_pass(passname, interp_dict, program_root, ast,
         sys.stdin = open(input_file, 'r')
         sys.stdout = open(output_file, 'w')
         interp_dict[passname](ast)
+        if sys.stdout.tell() > 0:
+            print() # terminate nonempty interpreter output for diff
         sys.stdin = stdin
         sys.stdout = stdout
-        result = os.system('diff' + ' -b ' + output_file + ' ' + program_root + '.golden')
+        result = os.system('diff' + ' -b ' + output_file \
+                           + ' ' + program_root + '.golden')
         if result == 0:
             trace('compiler ' + compiler_name + ' success on pass ' + passname \
                   + ' on test\n' + program_root + '\n')
             return 1
         else:
             print('compiler ' + compiler_name + ' failed pass ' + passname \
-                  + ' on test\n' + program_root + '\n')
+                  + ' on test:\n' + program_root + '\n')
             return 0
     else:
-        trace('compiler ' + compiler_name + ' skip test on pass ' + passname + ' on test\n' + program_root + '\n')
+        trace('compiler ' + compiler_name + ' skip test on pass ' + passname \
+              + ' on test\n' + program_root + '\n')
         return 0  # ??
 
 
@@ -1185,6 +1207,7 @@ def compile_and_test(compiler, compiler_name,
                      program_filename):
     total_passes = 0
     successful_passes = 0
+    successful_test = 0
     from eval_x86 import interp_x86
 
     program_root = os.path.splitext(program_filename)[0]
@@ -1194,10 +1217,40 @@ def compile_and_test(compiler, compiler_name,
     trace('\n# source program: ' + os.path.basename(program_root) + '\n')
     trace(program)
     trace('')
+    trace(repr(program))
+    trace('')
+
+    # A test with a .tyerr file (contents ignored) must be rejected by
+    # the source type checker, as in the Racket support code.
+    if os.path.isfile(program_root + '.tyerr'):
+        test_name = os.path.basename(program_root)
+        try:
+            type_check_dict['source'](program)
+        except Exception as e:
+            trace('expected type error: ' + str(e))
+            print('compiler ' + compiler_name + ' passed test ' + test_name)
+            return (0, 0, 1)
+        print('compiler ' + compiler_name + ', expected type error'
+              + ' on test ' + test_name)
+        return (0, 0, 0)
 
     if 'source' in type_check_dict.keys():
         trace('\n# type checking source program\n')
         type_check_dict['source'](program)
+
+
+    passname = 'partial_eval'
+    if hasattr(compiler, passname):
+        trace('\n# ' + passname + '\n')
+        program = compiler.partial_eval(program)
+        trace(program)
+        trace('')
+        if passname in type_check_dict.keys():
+            type_check_dict[passname](program)
+        total_passes += 1
+        successful_passes += \
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
 
     passname = 'shrink'
     if hasattr(compiler, passname):
@@ -1209,10 +1262,9 @@ def compile_and_test(compiler, compiler_name,
             type_check_dict[passname](program)
         total_passes += 1
         successful_passes += \
-            test_pass(passname, interp_dict, program_root, program, compiler_name)
-    else:
-        trace("\n# no shrink pass!")
-        
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
+
     passname = 'uniquify'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
@@ -1222,7 +1274,8 @@ def compile_and_test(compiler, compiler_name,
             type_check_dict[passname](program)
         total_passes += 1
         successful_passes += \
-            test_pass(passname, interp_dict, program_root, program, compiler_name)
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
 
     passname = 'reveal_functions'
     if hasattr(compiler, passname):
@@ -1246,7 +1299,21 @@ def compile_and_test(compiler, compiler_name,
             type_check_dict[passname](program)
         total_passes += 1
         successful_passes += \
-            test_pass(passname, interp_dict, program_root, program, compiler_name)
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
+
+    passname = 'check_bounds'
+    if hasattr(compiler, passname):
+        trace('\n# ' + passname + '\n')
+        program = compiler.check_bounds(program)
+        trace(program)
+        trace('')
+        if passname in type_check_dict.keys():
+            type_check_dict[passname](program)
+        total_passes += 1
+        successful_passes += \
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
 
     passname = 'erase_types'
     if hasattr(compiler, passname):
@@ -1258,8 +1325,9 @@ def compile_and_test(compiler, compiler_name,
             type_check_dict[passname](program)
         total_passes += 1
         successful_passes += \
-            test_pass(passname, interp_dict, program_root, program, compiler_name)
-        
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
+
     passname = 'cast_insert'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
@@ -1340,6 +1408,7 @@ def compile_and_test(compiler, compiler_name,
         if passname in type_check_dict.keys():
             trace('type checking after ' + passname + '\n')
             type_check_dict[passname](program)
+            trace('type checking passed')
         total_passes += 1
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
@@ -1353,28 +1422,35 @@ def compile_and_test(compiler, compiler_name,
         if passname in type_check_dict.keys():
             trace('type checking after ' + passname + '\n')
             type_check_dict[passname](program)
+            trace('type checking passed')
         total_passes += 1
         successful_passes += \
             test_pass(passname, interp_dict, program_root, program,
                       compiler_name)
 
     passname = 'remove_complex_operands'
-    trace('\n# ' + passname + '\n')
-    program = compiler.remove_complex_operands(program)
-    trace(program)
-    if passname in type_check_dict.keys():
-        type_check_dict[passname](program)
-    total_passes += 1
-    successful_passes += \
-        test_pass(passname, interp_dict, program_root, program,
-                  compiler_name)
+    if hasattr(compiler, passname):
+        trace('\n# ' + passname + '\n')
+        program = compiler.remove_complex_operands(program)
+        trace(program)
+        trace(repr(program))
+        if passname in type_check_dict.keys():
+            trace('type checking after ' + passname + '\n')
+            type_check_dict[passname](program)
+            trace('type checking passed')
+        total_passes += 1
+        successful_passes += \
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
 
     passname = 'explicate_control'
     if hasattr(compiler, passname):
         trace('\n# ' + passname + '\n')
         program = compiler.explicate_control(program)
         trace(program)
+        trace(repr(program))
         if passname in type_check_dict.keys():
+            trace('type checking after ' + passname + '\n')
             type_check_dict[passname](program)
             trace('type checking passed')
         else:
@@ -1385,71 +1461,77 @@ def compile_and_test(compiler, compiler_name,
                       compiler_name)
 
     passname = 'select_instructions'
-    trace('\n# ' + passname + '\n')
-    program = compiler.select_instructions(program)
-    trace(program)
-    total_passes += 1
-    successful_passes += \
-        test_pass(passname, interp_dict, program_root, program,
-                  compiler_name)
+    if hasattr(compiler, passname):
+        trace('\n# ' + passname + '\n')
+        program = compiler.select_instructions(program)
+        trace(program)
+        total_passes += 1
+        successful_passes += \
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
 
     passname = 'assign_homes'
-    trace('\n# ' + passname + '\n')
-    program = compiler.assign_homes(program)
-    trace(program)
-    total_passes += 1
-    successful_passes += \
-        test_pass(passname, interp_dict, program_root, program,
-                  compiler_name)
+    if hasattr(compiler, passname):
+        trace('\n# ' + passname + '\n')
+        program = compiler.assign_homes(program)
+        trace(program)
+        total_passes += 1
+        successful_passes += \
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
 
     passname = 'patch_instructions'
-    trace('\n# ' + passname + '\n')
-    program = compiler.patch_instructions(program)
-    trace(program)
-    total_passes += 1
-    successful_passes += \
-        test_pass(passname, interp_dict, program_root, program,
-                  compiler_name)
+    if hasattr(compiler, passname):
+        trace('\n# ' + passname + '\n')
+        program = compiler.patch_instructions(program)
+        trace(program)
+        total_passes += 1
+        successful_passes += \
+            test_pass(passname, interp_dict, program_root, program,
+                      compiler_name)
 
-    trace('\n# prelude and conclusion\n')
-    program = compiler.prelude_and_conclusion(program)
-    trace(program)
-    trace("")
+    passname = 'prelude_and_conclusion'
+    if hasattr(compiler, passname):
+        trace('\n# ' + passname + '\n')
+        program = compiler.prelude_and_conclusion(program)
+        trace(program)
+        trace("")
 
-    x86_filename = program_root + ".s"
-    with open(x86_filename, "w") as dest:
-        dest.write(str(program))
+        x86_filename = program_root + ".s"
+        with open(x86_filename, "w") as dest:
+            dest.write(str(program))
 
-    total_passes += 1
+        total_passes += 1
 
-    # Run the final x86 program
-    emulate_x86 = False
-    if emulate_x86:
-        stdin = sys.stdin
-        stdout = sys.stdout
-        sys.stdin = open(program_root + '.in', 'r')
-        sys.stdout = open(program_root + '.out', 'w')
-        interp_x86(program)
-        sys.stdin = stdin
-        sys.stdout = stdout
-    else:
-        if platform == 'darwin':
-            os.system('gcc -arch x86_64 runtime.o ' + x86_filename)
+        # Run the final x86 program
+        emulate_x86 = False
+        if emulate_x86:
+            stdin = sys.stdin
+            stdout = sys.stdout
+            sys.stdin = open(program_root + '.in', 'r')
+            sys.stdout = open(program_root + '.out', 'w')
+            interp_x86(program)
+            sys.stdin = stdin
+            sys.stdout = stdout
         else:
-            os.system('gcc runtime.o ' + x86_filename)
-        input_file = program_root + '.in'
-        output_file = program_root + '.out'
-        os.system('./a.out < ' + input_file + ' > ' + output_file)
+            if platform == 'darwin':
+                os.system('gcc -arch x86_64 runtime.o ' + x86_filename)
+            else:
+                os.system('gcc runtime.o ' + x86_filename + ' -z noexecstack')
+            input_file = program_root + '.in'
+            output_file = program_root + '.out'
+            os.system('./a.out < ' + input_file + ' > ' + output_file)
 
-    result = os.system('diff' + ' -b ' + program_root + '.out ' \
-                       + program_root + '.golden')
-    if result == 0:
-        successful_passes += 1
-        return (successful_passes, total_passes, 1)
-    else:
-        print('compiler ' + compiler_name + ', executable failed' \
-              + ' on test ' + program_root)
-        return (successful_passes, total_passes, 0)
+        result = os.system('diff' + ' -b ' + program_root + '.out ' \
+                           + program_root + '.golden')
+        if result == 0:
+            successful_passes += 1
+            successful_test = 1
+            print('compiler ' + compiler_name + ' passed test ' + os.path.basename(program_root))
+        else:
+            print('compiler ' + compiler_name + ', executable failed' \
+                  + ' on test ' + os.path.basename(program_root))
+    return (successful_passes, total_passes, successful_test)
 
 
 def trace_ast_and_concrete(ast):
@@ -1471,6 +1553,11 @@ def compile(compiler, compiler_name, type_check_L, type_check_C,
     type_check_L(program)
     trace_ast_and_concrete(program)
 
+    if hasattr(compiler, 'partial_eval'):
+        trace('\n# partial_eval\n')
+        program = compiler.partial_eval(program)
+        trace_ast_and_concrete(program)
+
     if hasattr(compiler, 'shrink'):
         trace('\n# shrink\n')
         program = compiler.shrink(program)
@@ -1487,22 +1574,28 @@ def compile(compiler, compiler_name, type_check_L, type_check_C,
         program = compiler.reveal_functions(program)
         trace_ast_and_concrete(program)
 
+    if hasattr(compiler, 'resolve'):
+        trace('\n# resolve\n')
+        type_check_L(program)
+        program = compiler.resolve(program)
+        trace_ast_and_concrete(program)
+
     if hasattr(compiler, 'convert_assignments'):
         trace('\n# assignment conversion\n')
         type_check_L(program)
         program = compiler.convert_assignments(program)
         trace_ast_and_concrete(program)
 
-    if hasattr(compiler, 'limit_functions'):
-        trace('\n# limit functions\n')
-        type_check_L(program)
-        program = compiler.limit_functions(program)
-        trace_ast_and_concrete(program)
-
     if hasattr(compiler, 'convert_to_closures'):
         trace('\n# closure conversion\n')
         type_check_L(program)
         program = compiler.convert_to_closures(program)
+        trace_ast_and_concrete(program)
+
+    if hasattr(compiler, 'limit_functions'):
+        trace('\n# limit functions\n')
+        type_check_L(program)
+        program = compiler.limit_functions(program)
         trace_ast_and_concrete(program)
 
     if hasattr(compiler, 'expose_allocation'):
@@ -1544,9 +1637,7 @@ def compile(compiler, compiler_name, type_check_L, type_check_C,
     with open(x86_filename, "w") as dest:
         dest.write(str(x86))
 
-    # Given a test file name, the name of a language, a compiler, a type
-
-
+# Given a test file name, the name of a language, a compiler, a type
 # checker and interpreter for the language, and an interpeter for the
 # C intermediate language, run all the passes in the compiler,
 # checking that the resulting programs produce output that matches the
@@ -1594,3 +1685,6 @@ def run_tests(lang, compiler, compiler_name, type_check_dict, interp_dict):
           + ' for compiler ' + compiler_name + ' on language ' + lang)
     print('passes: ' + repr(successful_passes) + '/' + repr(total_passes) \
           + ' for compiler ' + compiler_name + ' on language ' + lang)
+
+    failed_tests = total_tests - successful_tests
+    return failed_tests

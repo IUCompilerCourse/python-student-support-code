@@ -21,7 +21,12 @@ class TypeCheckLfun(TypeCheckLarray):
                             + ' in ' + repr(e))
       case _:
         super().check_type_equal(t1, t2, e)
-  
+
+  # Functions may not be compared with == or !=.
+  def check_not_function(self, t, e):
+    if isinstance(t, FunctionType):
+      raise Exception('error: cannot compare functions in ' + repr(e))
+
   def parse_type_annot(self, annot):
       match annot:
         case Name(id):
@@ -81,6 +86,14 @@ class TypeCheckLfun(TypeCheckLarray):
           case _:
             raise Exception('type_check_exp: in call, unexpected ' + \
                             repr(func_t))
+      case Constant(None):
+        return VoidType()
+      case Compare(left, [cmp], [right]) if isinstance(cmp, Eq) or isinstance(cmp, NotEq):
+        l = self.type_check_exp(left, env)
+        r = self.type_check_exp(right, env)
+        self.check_not_function(l, e)
+        self.check_type_equal(l, r, e)
+        return BoolType()
       case _:
         return super().type_check_exp(e, env)
 
@@ -99,7 +112,10 @@ class TypeCheckLfun(TypeCheckLarray):
         else:
             new_params = params
             new_returns = returns
-        for (x,t) in new_params:
+        unique_names = {x for x,_ in new_params}             
+        if len(unique_names) != len(new_params):
+            raise Exception('type_check: duplicate parameter name in function ' + repr(name))
+        for x,t in new_params:
             new_env[x] = t
         rt = self.type_check_stmts(body, new_env)
         self.check_type_equal(new_returns, rt, ss[0])
@@ -121,6 +137,8 @@ class TypeCheckLfun(TypeCheckLarray):
                                 for p in params.args]
                 else:
                     params_t = [t for (x,t) in params]
+                if name in env:
+                    raise Exception('type_check: duplicate function name ' + name)
                 env[name] = FunctionType(params_t, self.parse_type_annot(returns))
         self.type_check_stmts(body, env)
       case _:

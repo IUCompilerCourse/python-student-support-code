@@ -24,7 +24,8 @@ def interp_x86(program, check_regs = False):
 class FunPointer:
     fun_name: str
 
-@dataclass
+# A garbage register value; each one is equal only to itself.
+@dataclass(eq=False)
 class Bogus:
     pass
 
@@ -37,7 +38,7 @@ class X86Emulator:
         self.check_regs = check_regs
         self.callee_saves = ['rsp','rbp','rbx','r12','r13','r14'] # omit 'r15'
         bogus = Bogus()
-        self.initial_callee_save_values = [1000,1000,bogus,bogus,bogus,bogus,bogus]
+        self.initial_callee_save_values = [1000,1000,bogus,bogus,bogus,bogus]
         for r,v in zip(self.callee_saves, self.initial_callee_save_values):
             self.registers[r] = v
         self.global_vals = {}
@@ -71,11 +72,11 @@ class X86Emulator:
         self.log('========== STARTING EXECUTION ==============================')
 
         # start evaluating at "main" or at "start"
-        if label_name('main') in blocks.keys():
-            self.eval_instrs(blocks[label_name('main')], blocks,
+        if 'main' in blocks.keys():
+            self.eval_instrs(blocks['main'], blocks,
                              output)
-        elif label_name('start') in blocks.keys():
-            self.eval_instrs(blocks[label_name('start')], blocks,
+        elif 'start' in blocks.keys():
+            self.eval_instrs(blocks['start'], blocks,
                              output)
 
 
@@ -335,7 +336,7 @@ class X86Emulator:
                 if perform_jump:
                     if target in blocks.keys():
                         self.eval_instrs(blocks[target], blocks, output)
-                    elif target == label_name('conclusion'):
+                    elif target == 'conclusion':
                         return
                     else:
                         raise Exception('jump to invalid target ' + target)
@@ -364,21 +365,21 @@ class X86Emulator:
 
             elif instr.data == 'callq':
                 target = str(instr.children[0])
-                if target == label_name('print_int'):
+                if target == 'print_int':
                     self.log(f'CALL TO print_int: {self.registers["rdi"]}')
                     output.append(self.registers['rdi'])
                     if self.logging:
                         print(self.print_state())
                     self.trash_caller_saves()                        
 
-                elif target == label_name('read_int'):
-                    self.trash_caller_saves()                        
+                elif target == 'read_int':
+                    self.trash_caller_saves()
                     self.registers['rax'] = input_int()
                     self.log(f'CALL TO read_int: {self.registers["rax"]}')
                     if self.logging:
                         print(self.print_state())
 
-                elif target == label_name('initialize'):
+                elif target == 'initialize':
                     self.log(f'CALL TO initialize: {self.registers["rdi"]}, {self.registers["rsi"]}')
                     rootstack_size = self.registers['rdi']
                     heap_size = self.registers['rsi']
@@ -390,11 +391,11 @@ class X86Emulator:
                     fromspace_end = fromspace_begin + heap_size
 
                     self.global_vals = { **self.global_vals,
-                        label_name('rootstack_begin'): rs_begin,
-                        label_name('rootstack_end'): rs_end,
-                        label_name('free_ptr'): fromspace_begin,
-                        label_name('fromspace_begin'): fromspace_begin,
-                        label_name('fromspace_end'): fromspace_end
+                        'rootstack_begin': rs_begin,
+                        'rootstack_end': rs_end,
+                        'free_ptr': fromspace_begin,
+                        'fromspace_begin': fromspace_begin,
+                        'fromspace_end': fromspace_end
                     }
 
                     if self.logging:
@@ -402,12 +403,12 @@ class X86Emulator:
                     self.trash_caller_saves()                        
 
 
-                elif target == label_name('collect'):
+                elif target == 'collect':
                     self.log(f'CALL TO collect: need {self.registers["rsi"]} bytes')
 
                     needed = self.registers["rsi"]
-                    fsb = self.global_vals[label_name('fromspace_begin')]
-                    fse = self.global_vals[label_name('fromspace_end')]
+                    fsb = self.global_vals['fromspace_begin']
+                    fse = self.global_vals['fromspace_end']
 
                     current_space = fse - fsb
 
@@ -416,32 +417,11 @@ class X86Emulator:
                         new_space = new_space * 2
 
                     new_fse = fsb + new_space
-                    self.global_vals[label_name('fromspace_end')] = new_fse
+                    self.global_vals['fromspace_end'] = new_fse
 
                     if self.logging:
                         print(self.print_state())
-                    self.trash_caller_saves()                        
-
-                # this seems to be buggy
-                # elif target == label_name('get_vec_length'):
-                #     tag = self.registers["rsi"]
-                #     self.log(f'CALL TO get_vec_length: tag {tag}')
-
-                #     TAG_VECOF_RSHIFT = 62
-                #     TAG_VECOF_LENGTH_RSHIFT = 2
-                #     TAG_VEC_LENGTH_MASK = 126 # 1111110
-                #     TAG_VEC_LENGTH_RSHIFT = 1
-                #     # is_vecof
-                #     if and64(1, shiftra64(tag,TAG_VECOF_RSHIFT)) != 0:
-                #         # get_vecof_length
-                #         res = shiftra64(shiftra64(shiftl64(tag,2),2),TAG_VECOF_LENGTH_RSHIFT)
-                #     else:
-                #         # get_vector_length
-                #         res = shiftra64(and64(tag, TAG_VEC_LENGTH_MASK),TAG_VEC_LENGTH_RSHIFT)
-                #     self.trash_caller_saves()
-                #     self.registers['rax'] = res
-                #     if self.logging:
-                #         print(self.print_state())
+                    self.trash_caller_saves()
 
                 else:
                     self.registers['rsp'] = self.registers['rsp'] - 8  # simulate push of RA
@@ -462,13 +442,13 @@ class X86Emulator:
                     self.registers['EFLAGS'] = 'l'
                 elif type(v1) == int and type(v2) == int and v2 > v1:
                     self.registers['EFLAGS'] = 'g'
-#               else:
-#                   raise RuntimeError(f'failed comparison: {instr} {v1} {v2}')
+                else:
+                    raise RuntimeError(f'failed comparison: {instr} {v1} {v2}')
 
             elif instr.data == 'leaq':
                 a1, a2 = instr.children
                 v1 = self.eval_arg(a1)
-#               assert isinstance(v1, FunPointer)
+                assert isinstance(v1, FunPointer)
                 self.store_arg(a2, v1)
 
             elif instr.data == 'indirect_callq':

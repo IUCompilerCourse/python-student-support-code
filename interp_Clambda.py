@@ -25,5 +25,7 @@ class InterpClambda(InterpCfun):
       case AllocateClosure(length, typ, arity):
         array = [None] * length
         return ClosureTuple(array, arity)
+      case UncheckedCast(exp, ty):
+        return self.interp_exp(exp, env)
       case _:
         return super().interp_exp(e, env)

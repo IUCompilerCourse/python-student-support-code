@@ -9,7 +9,7 @@ class InterpCif(InterpLif):
       case CProgram(blocks):
         env = {}
         self.blocks = blocks
-        self.interp_stmts(blocks[label_name('start')], env)
+        self.interp_stmts(blocks['start'], env)
 
   def interp_stmts(self, ss, env):
     match ss:

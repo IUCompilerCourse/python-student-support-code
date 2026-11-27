@@ -39,6 +39,8 @@ class InterpLlambda(InterpLfun):
         return env[id]
       case Lambda(params, body):
         return Function('lambda', params, [Return(body)], env)
+      case UncheckedCast(exp, ty):
+        return self.interp_exp(exp, env)
       case Closure(arity, args):
         return ClosureTuple([self.interp_exp(arg, env) for arg in args], arity)
       case AllocateClosure(length, typ, arity):

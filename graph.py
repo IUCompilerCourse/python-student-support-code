@@ -20,12 +20,14 @@ class Edge:
     def __eq__(self, other):
         return self.raw() == other.raw()
 
+Vertex = any
+
 ################################################################################
 # Directed Adjacency List
 ################################################################################
     
 class DirectedAdjList:
-    def __init__(self, edge_list=[], vertex_label=None,
+    def __init__(self, edge_list=None, vertex_label=None,
                  vertex_text=None,
                  edge_label=None, edge_color=None):
         self.out = {}
@@ -40,6 +42,8 @@ class DirectedAdjList:
         self.edge_label = edge_label
         self.edge_color = edge_color
         self.edge_set = set()
+        if not edge_list:
+            return
         for e in edge_list:
           if isinstance(e, Edge):
             self.add_edge(e.source, e.target)
@@ -181,7 +185,7 @@ class UndirectedAdjList(DirectedAdjList):
 # Topological Sort
 ################################################################################
 
-def topological_sort(G: DirectedAdjList) -> DirectedAdjList:
+def topological_sort(G: DirectedAdjList) -> [Vertex]:
     in_degree = {u: 0 for u in G.vertices()}
     for e in G.edges():
         in_degree[e.target] += 1
@@ -201,6 +205,8 @@ def topological_sort(G: DirectedAdjList) -> DirectedAdjList:
 
 def transpose(G: DirectedAdjList) -> DirectedAdjList:
     G_t = DirectedAdjList()
+    for v in G.vertices():
+        G_t.add_vertex(v)
     for e in G.edges():
         G_t.add_edge(e.target, e.source)
     return G_t
