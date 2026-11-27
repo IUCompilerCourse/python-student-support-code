@@ -1,5 +1,8 @@
 # Author: Joe Near
 # License: GPLv3
+# Notice of modifications as per license:
+# Modified 9/22 Andrew Tolmach to use 64-bit machine arithmetic
+# Modified 10/22 Andrew Tolmach to support test that callee-save registers are preserved by top-level function
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -10,9 +13,9 @@ from convert_x86 import convert_program
 from parser_x86 import x86_parser, x86_parser_instrs
 
 
-def interp_x86(program):
+def interp_x86(program, check_regs = False):
     x86_program = convert_program(program)
-    emu = X86Emulator(logging=False)
+    emu = X86Emulator(logging=False, check_regs=check_regs)
     x86_output = emu.eval_program(x86_program)
     for s in x86_output:
         print(s, end='')
@@ -21,20 +24,34 @@ def interp_x86(program):
 class FunPointer:
     fun_name: str
 
+# A garbage register value; each one is equal only to itself.
+@dataclass(eq=False)
+class Bogus:
+    pass
+
 class X86Emulator:
-    def __init__(self, logging=True):
+    def __init__(self, logging=True, check_regs=False):
         self.registers = defaultdict(lambda: None)
         self.memory = defaultdict(lambda: None)
         self.variables = defaultdict(lambda: None)
         self.logging = logging
-        self.registers['rbp'] = 1000
-        self.registers['rsp'] = 1000
-
+        self.check_regs = check_regs
+        self.callee_saves = ['rsp','rbp','rbx','r12','r13','r14'] # omit 'r15'
+        bogus = Bogus()
+        self.initial_callee_save_values = [1000,1000,bogus,bogus,bogus,bogus]
+        for r,v in zip(self.callee_saves, self.initial_callee_save_values):
+            self.registers[r] = v
         self.global_vals = {}
 
     def log(self, s):
         if self.logging:
             print(s)
+
+    def trash_caller_saves(self):
+        caller_saves = ['rax', 'rcx', 'rdx', 'rsi', 'rdi', 'r8', 'r9', 'r10'] # omit 'r11'
+        if self.check_regs:
+            for r in caller_saves:
+                self.registers[r] = Bogus()
 
     def parse_and_eval_program(self, s):
         p = x86_parser.parse(s)
@@ -69,6 +86,11 @@ class X86Emulator:
 
         self.log(f'OUTPUT: {output}')
         self.log('========== FINISHED EXECUTION ==============================')
+
+        if self.check_regs:
+            for r,v in zip(self.callee_saves, self.initial_callee_save_values):
+                if self.registers[r] != v:
+                    print(f'OOPS: initial callee save value overwritten: {r} {self.registers[r]}') # will show as a diff with .golden
 
         return output
 
@@ -248,11 +270,41 @@ class X86Emulator:
                 v2 = self.eval_arg(a2)
                 self.store_arg(a2, sub64(v2, v1))
 
+            elif instr.data == 'imulq':
+                a1, a2 = instr.children
+                v1 = self.eval_arg(a1)
+                v2 = self.eval_arg(a2)
+                self.store_arg(a2, mul64(v1, v2))
+
             elif instr.data == 'xorq':
                 a1, a2 = instr.children
                 v1 = self.eval_arg(a1)
                 v2 = self.eval_arg(a2)
                 self.store_arg(a2, xor64(v1, v2))
+
+            elif instr.data == 'andq':
+                a1, a2 = instr.children
+                v1 = self.eval_arg(a1)
+                v2 = self.eval_arg(a2)
+                self.store_arg(a2, and64(v1, v2))
+
+            elif instr.data == 'orq':
+                a1, a2 = instr.children
+                v1 = self.eval_arg(a1)
+                v2 = self.eval_arg(a2)
+                self.store_arg(a2, or64(v1, v2))
+
+            elif instr.data == 'sarq':
+                a1, a2 = instr.children
+                v1 = self.eval_arg(a1)
+                v2 = self.eval_arg(a2)
+                self.store_arg(a2, shiftra64(v2, v1))
+
+            elif instr.data == 'salq':
+                a1, a2 = instr.children
+                v1 = self.eval_arg(a1)
+                v2 = self.eval_arg(a2)
+                self.store_arg(a2, shiftl64(v2, v1))
 
             elif instr.data == 'negq':
                 a1 = instr.children[0]
@@ -318,8 +370,10 @@ class X86Emulator:
                     output.append(self.registers['rdi'])
                     if self.logging:
                         print(self.print_state())
+                    self.trash_caller_saves()                        
 
                 elif target == 'read_int':
+                    self.trash_caller_saves()
                     self.registers['rax'] = input_int()
                     self.log(f'CALL TO read_int: {self.registers["rax"]}')
                     if self.logging:
@@ -346,6 +400,7 @@ class X86Emulator:
 
                     if self.logging:
                         print(self.print_state())
+                    self.trash_caller_saves()                        
 
 
                 elif target == 'collect':
@@ -366,9 +421,12 @@ class X86Emulator:
 
                     if self.logging:
                         print(self.print_state())
+                    self.trash_caller_saves()
 
                 else:
+                    self.registers['rsp'] = self.registers['rsp'] - 8  # simulate push of RA
                     self.eval_instrs(blocks[target], blocks, output)
+                    self.registers['rsp'] = self.registers['rsp'] + 8  # and pop of RA
 
             elif instr.data == 'retq':
                 return
@@ -380,12 +438,12 @@ class X86Emulator:
 
                 if v1 == v2:
                     self.registers['EFLAGS'] = 'e'
-                elif v2 < v1:
+                elif type(v1) == int and type(v2) == int and v2 < v1:
                     self.registers['EFLAGS'] = 'l'
-                elif v2 > v1:
+                elif type(v1) == int and type(v2) == int and v2 > v1:
                     self.registers['EFLAGS'] = 'g'
                 else:
-                    raise RuntimeError(f'failed comparison: {instr}')
+                    raise RuntimeError(f'failed comparison: {instr} {v1} {v2}')
 
             elif instr.data == 'leaq':
                 a1, a2 = instr.children
@@ -397,7 +455,9 @@ class X86Emulator:
                 v = self.eval_arg(instr.children[0])
                 assert isinstance(v, FunPointer)
                 target = v.fun_name
+                self.registers['rsp'] = self.registers['rsp'] - 8
                 self.eval_instrs(blocks[target], blocks, output)
+                self.registers['rsp'] = self.registers['rsp'] + 8
 
             elif instr.data == 'indirect_jmp':
                 v = self.eval_arg(instr.children[0])
@@ -405,24 +465,6 @@ class X86Emulator:
                 target = v.fun_name
                 self.eval_instrs(blocks[target], blocks, output)
                 return # after jumping, toss continuation
-
-            elif instr.data == 'andq':
-                a1, a2 = instr.children
-                v1 = self.eval_arg(a1)
-                v2 = self.eval_arg(a2)
-                self.store_arg(a2, and64(v1, v2))
-                
-            elif instr.data == 'salq':
-                a1, a2 = instr.children
-                v1 = self.eval_arg(a1)
-                v2 = self.eval_arg(a2)
-                self.store_arg(a2, to_signed(v2 << v1))
-
-            elif instr.data == 'sarq':
-                a1, a2 = instr.children
-                v1 = self.eval_arg(a1)
-                v2 = self.eval_arg(a2)
-                self.store_arg(a2, v2 >> v1)
 
             else:
                 raise RuntimeError(f'Unknown instruction: {instr.data}')

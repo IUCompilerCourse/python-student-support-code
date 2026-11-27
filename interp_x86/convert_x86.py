@@ -27,7 +27,7 @@ def convert_arg(arg):
             return Tree('mem_a', [convert_int(offset), reg])
         case ByteReg(id):
             return Tree('reg_a', [id])
-        case GlobalValue(id):
+        case Global(id):
             return Tree('global_val_a', [id, 'rip'])
         case _:
             raise Exception('convert_arg: unhandled ' + repr(arg))
@@ -38,10 +38,14 @@ def convert_instr(instr):
             return Tree(instr, [convert_arg(arg) for arg in args])
         case Callq(func, args):
             return Tree('callq', [func])
+        case IndirectCallq(func, args):
+            return Tree('indirect_callq', [convert_arg(func)])
         case Jump(label):
             return Tree('jmp', [label])
         case JumpIf(cc, label):
             return Tree('j' + cc, [label])
+        case IndirectJump(func):
+            return Tree('indirect_jmp', [convert_arg(func)])
         case _:
             raise Exception('error in convert_instr, unhandled ' + repr(instr))
 
