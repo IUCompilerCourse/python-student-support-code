@@ -111,6 +111,8 @@ class TypeCheckLgrad(TypeCheckLlambda):
           if isinstance(cmp, Eq) or isinstance(cmp, NotEq):
         left_type = self.type_check_exp(left, env)
         right_type = self.type_check_exp(right, env)
+        self.check_not_function(left_type, e)
+        self.check_not_function(right_type, e)
         self.check_consistent(left_type, right_type, e)
         return BoolType()
       case Compare(left, [cmp], [right]) \
