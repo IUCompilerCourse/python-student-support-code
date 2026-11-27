@@ -48,7 +48,7 @@ def convert_instr(instr):
 def convert_program(p):
     if isinstance(p.body, list):
         main_instrs = [convert_instr(instr) for instr in p.body]
-        main_block = Tree('block', [label_name('main')] + main_instrs)
+        main_block = Tree('block', ['main'] + main_instrs)
         return Tree('prog', [main_block])
     elif isinstance(p.body, dict):
         blocks = []

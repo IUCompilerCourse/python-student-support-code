@@ -2,8 +2,22 @@ from ast import *
 from type_check_Lvar import TypeCheckLvar
 from utils import *
 
+# This is the type checker for Lif and LmonIf.
+
 class TypeCheckLif(TypeCheckLvar):
-          
+
+  # The following is not needed until Larray, for bounds checking,
+  # but I don't want to have to redefine the type checking code
+  # for IfExp and If. -eremy
+  def combine_types(self, t1, t2):
+    match (t1, t2):
+      case (Bottom(), _):
+        return t2
+      case (_, Bottom()):
+        return t1
+      case _:
+        return t1
+  
   def type_check_exp(self, e, env):
     match e:
       case Constant(value) if isinstance(value, bool):
@@ -14,7 +28,7 @@ class TypeCheckLif(TypeCheckLvar):
         body_t = self.type_check_exp(body, env)
         orelse_t = self.type_check_exp(orelse, env)
         self.check_type_equal(body_t, orelse_t, e)
-        return body_t
+        return self.combine_types(body_t, orelse_t)
       case UnaryOp(Not(), v):
         t = self.type_check_exp(v, env)
         self.check_type_equal(t, BoolType(), v)
@@ -56,10 +70,12 @@ class TypeCheckLif(TypeCheckLvar):
         self.check_type_equal(BoolType(), test_t, test)
         body_t = self.type_check_stmts(body, env)
         orelse_t = self.type_check_stmts(orelse, env)
-        self.check_type_equal(body_t, orelse_t, ss[0])
+        #disabled the following check to experiment with allowing early returns
+        # from a functions -Jeremy
+        #self.check_type_equal(body_t, orelse_t, ss[0])
         if len(ss) > 1:
           return self.type_check_stmts(ss[1:], env)
         else: # this 'if' statement is in tail position
-          return body_t
+          return self.combine_types(body_t, orelse_t)
       case _:
         return super().type_check_stmts(ss, env)

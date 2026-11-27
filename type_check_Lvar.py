@@ -1,6 +1,8 @@
 from ast import *
 from utils import IntType
 
+# This is the type checker for Lvar and LmonVar.
+
 class TypeCheckLvar:
           
   def check_type_equal(self, t1, t2, e):

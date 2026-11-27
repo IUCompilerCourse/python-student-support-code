@@ -3,13 +3,15 @@ from type_check_Lwhile import TypeCheckLwhile
 from utils import *
 import typing
 
+# This is the type checker for Ltup, Lalloc, and LMonAlloc.
+
 class TypeCheckLtup(TypeCheckLwhile):
 
   def check_type_equal(self, t1, t2, e):
     match t1:
       case TupleType(ts1):
         match t2:
-          case TupleType(ts2):  # if len(ts1) == len(ts2):  -- including this breaks Llambda type checking because of bogus treatment of closure types there
+          case TupleType(ts2) if len(ts1) >= len(ts2):  #using equality breaks Llambda type checking because of bogus treatment of closure types there
             for (ty1, ty2) in zip(ts1,ts2):
               self.check_type_equal(ty1, ty2, e)
           case _:

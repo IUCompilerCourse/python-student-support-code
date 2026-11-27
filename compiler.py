@@ -15,23 +15,24 @@ class Compiler:
     # Remove Complex Operands
     ############################################################################
 
-    def rco_exp(self, e: expr, need_atomic: bool) -> Tuple[expr, Temporaries]:
+    def rco_exp(self, e: expr, need_atomic : bool) -> Tuple[expr, Temporaries]:
         # YOUR CODE HERE
-        raise Exception('rco_exp not implemented')
+        pass        
 
     def rco_stmt(self, s: stmt) -> List[stmt]:
         # YOUR CODE HERE
-        raise Exception('rco_stmt not implemented')
+        pass        
 
-    # def remove_complex_operands(self, p: Module) -> Module:
-    #     # YOUR CODE HERE
-    #     raise Exception('remove_complex_operands not implemented')
-        
+    def remove_complex_operands(self, p: Module) -> Module:
+        # YOUR CODE HERE
+        pass                
 
     ############################################################################
     # Select Instructions
     ############################################################################
 
+    # The expression e passed to select_arg should furthermore be an atom.
+    # (But there is no type for atoms, so the type of e is given as expr.)
     def select_arg(self, e: expr) -> arg:
         # YOUR CODE HERE
         pass        
@@ -40,9 +41,9 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    # def select_instructions(self, p: Module) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
+    def select_instructions(self, p: Module) -> X86Program:
+        # YOUR CODE HERE
+        pass        
 
     ############################################################################
     # Assign Homes
@@ -57,14 +58,9 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    def assign_homes_instrs(self, ss: List[instr],
-                            home: Dict[Variable, arg]) -> List[instr]:
+    def assign_homes(self, p: X86Program) -> X86Program:
         # YOUR CODE HERE
         pass        
-
-    # def assign_homes(self, p: X86Program) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
 
     ############################################################################
     # Patch Instructions
@@ -74,19 +70,15 @@ class Compiler:
         # YOUR CODE HERE
         pass        
 
-    def patch_instrs(self, ss: List[instr]) -> List[instr]:
+    def patch_instructions(self, p: X86Program) -> X86Program:
         # YOUR CODE HERE
         pass        
-
-    # def patch_instructions(self, p: X86Program) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
 
     ############################################################################
     # Prelude & Conclusion
     ############################################################################
 
-    # def prelude_and_conclusion(self, p: X86Program) -> X86Program:
-    #     # YOUR CODE HERE
-    #     pass        
+    def prelude_and_conclusion(self, p: X86Program) -> X86Program:
+        # YOUR CODE HERE
+        pass        
 

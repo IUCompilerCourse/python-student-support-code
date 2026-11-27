@@ -21,7 +21,12 @@ class TypeCheckLfun(TypeCheckLarray):
                             + ' in ' + repr(e))
       case _:
         super().check_type_equal(t1, t2, e)
-  
+
+  # Functions may not be compared with == or !=.
+  def check_not_function(self, t, e):
+    if isinstance(t, FunctionType):
+      raise Exception('error: cannot compare functions in ' + repr(e))
+
   def parse_type_annot(self, annot):
       match annot:
         case Name(id):
@@ -83,6 +88,12 @@ class TypeCheckLfun(TypeCheckLarray):
                             repr(func_t))
       case Constant(None):
         return VoidType()
+      case Compare(left, [cmp], [right]) if isinstance(cmp, Eq) or isinstance(cmp, NotEq):
+        l = self.type_check_exp(left, env)
+        r = self.type_check_exp(right, env)
+        self.check_not_function(l, e)
+        self.check_type_equal(l, r, e)
+        return BoolType()
       case _:
         return super().type_check_exp(e, env)
 

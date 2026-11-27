@@ -14,6 +14,7 @@ x86_parser = Lark(r"""
           | "jmp" CNAME -> jmp
           | "jmp" "*" arg -> indirect_jmp
           | "je" CNAME -> je
+          | "jne" CNAME -> jne
           | "jl" CNAME -> jl
           | "jle" CNAME -> jle
           | "jg" CNAME -> jg
@@ -72,6 +73,7 @@ x86_parser_instrs = Lark(r"""
           | "jmp" CNAME -> jmp
           | "jmp" "*" arg -> indirect_jmp
           | "je" CNAME -> je
+          | "jne" CNAME -> jne
           | "jl" CNAME -> jl
           | "jle" CNAME -> jle
           | "jg" CNAME -> jg

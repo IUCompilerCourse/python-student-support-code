@@ -132,6 +132,8 @@ class TypeCheckLlambda(TypeCheckLfun):
             self.check_exp(value, ts[index], env)
           case Bottom():
             pass
+          case ListType(elt_type):
+            self.check_exp(value, elt_type, env)
           case _:
             raise Exception('check_stmts: expected a tuple, not ' \
                             + repr(tup_t))

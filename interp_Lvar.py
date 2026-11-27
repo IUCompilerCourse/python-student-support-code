@@ -24,7 +24,11 @@ class InterpLvar(InterpLint):
         self.interp_stmts(body, {})
       case _:
         raise Exception('interp: unexpected ' + repr(p))
-    
+
+def interp_Lvar(ast):
+  interp = InterpLvar()
+  interp.interp(ast)
+      
 if __name__ == "__main__":
   eight = Constant(8)
   neg_eight = UnaryOp(USub(), eight)
@@ -33,4 +37,4 @@ if __name__ == "__main__":
   pr = Expr(Call(Name('print'), [ast1_1]))
   p = Module([pr])
   interp = InterpLvar()
-  interp.interp_Lvar(p)
+  interp.interp(p)

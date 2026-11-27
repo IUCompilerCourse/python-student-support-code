@@ -1,0 +1,56 @@
+
+L_var
+
+    exp ::= Constant(int)
+          | Call(Name('input_int'),[])
+          | UnaryOp(USub(), exp)
+          | BinOp(exp, Add(), exp)
+          | BinOp(exp, Sub(), exp)
+          | Name(var)
+    stmt ::= Expr(Call(Name('print'), [exp]))
+           | Expr(exp) 
+           | Assign([Name(var)], exp)
+    LVar ::= Module(stmt∗)
+
+L_var^mon
+
+    atm ::= Constant(int)
+          | Name(var)
+    exp ::= atm
+          | Call(Name('input_int'),[])
+          | UnaryOp(USub(), atm)
+          | BinOp(atm, Add(), atm)
+          | BinOp(atm, Sub(), atm)
+    stmt ::= Expr(Call(Name('print'), [atm]))
+           | Expr(exp) 
+           | Assign([Name(var)], exp)
+    LVar ::= Module(stmt∗)
+
+X86_Var
+
+    reg ::= 'rsp' | 'rbp' | 'rax' | 'rbx' | 'rcx' | 'rdx' | 'rsi' | 'rdi'
+	  | 'r8' | 'r9' | 'r10' | 'r11' | 'r12' | 'r13' | 'r14' | 'r15'
+    arg ::= Immediate(int)
+	  | Reg(reg)
+	  | Deref(reg,int)
+	  | Variable(var)
+    instr ::= Instr('addq',[arg,arg])
+	  | Instr('subq',[arg,arg])
+	  | Instr('movq',[arg,arg])
+	  | Instr('negq',[arg])
+	  | Instr('pushq',[arg])
+	  | Instr('popq',[arg])
+	  | Callq(label,int)
+	  | Instr('retq',[])
+	  | Jump(label) 
+    x86_Var ::= X86Program(instr∗)
+
+
+X86_Int
+
+    Remove Variable(var) from arg.
+
+    arg ::= Immediate(int)
+	  | Reg(reg)
+	  | Deref(reg,int)
+
