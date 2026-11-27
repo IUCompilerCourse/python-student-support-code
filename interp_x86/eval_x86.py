@@ -416,7 +416,7 @@ class X86Emulator:
                 a1, a2 = instr.children
                 v1 = self.eval_arg(a1)
                 v2 = self.eval_arg(a2)
-                self.store_arg(a2, v2 << v1)
+                self.store_arg(a2, to_signed(v2 << v1))
 
             elif instr.data == 'sarq':
                 a1, a2 = instr.children
