@@ -16,7 +16,7 @@ from parser_x86 import x86_parser, x86_parser_instrs
 def interp_x86(program, check_regs = False):
     x86_program = convert_program(program)
     emu = X86Emulator(logging=False, check_regs=check_regs)
-    x86_output = emu.eval_program(x86_program)
+    x86_output = emu.eval_program(x86_program, getattr(program, 'num_root_spills', 0))
     for s in x86_output:
         print(s, end='')
 
@@ -56,7 +56,18 @@ class X86Emulator:
     def parse_and_eval_program(self, s):
         p = x86_parser.parse(s)
 
-    def eval_program(self, p):
+    def initialize(self, rootstack_size, heap_size):
+        rs_begin = 2000
+        fromspace_begin = 100000
+        self.global_vals = { **self.global_vals,
+            'rootstack_begin': rs_begin,
+            'rootstack_end': rs_begin + rootstack_size,
+            'free_ptr': fromspace_begin,
+            'fromspace_begin': fromspace_begin,
+            'fromspace_end': fromspace_begin + heap_size
+        }
+
+    def eval_program(self, p, num_root_spills=0):
         assert p.data == 'prog'
         blocks = {}
         output = []
@@ -76,6 +87,10 @@ class X86Emulator:
             self.eval_instrs(blocks['main'], blocks,
                              output)
         elif 'start' in blocks.keys():
+            # A program before prelude_and_conclusion: set up the heap and
+            # root stack as main would, like the Racket emulator does.
+            self.initialize(2 ** 16, 2 ** 16)
+            self.registers['r15'] = self.global_vals['rootstack_begin'] + 8 * num_root_spills
             self.eval_instrs(blocks['start'], blocks,
                              output)
 
@@ -381,23 +396,7 @@ class X86Emulator:
 
                 elif target == 'initialize':
                     self.log(f'CALL TO initialize: {self.registers["rdi"]}, {self.registers["rsi"]}')
-                    rootstack_size = self.registers['rdi']
-                    heap_size = self.registers['rsi']
-
-                    rs_begin = 2000
-                    rs_end = rs_begin + rootstack_size
-
-                    fromspace_begin = 100000
-                    fromspace_end = fromspace_begin + heap_size
-
-                    self.global_vals = { **self.global_vals,
-                        'rootstack_begin': rs_begin,
-                        'rootstack_end': rs_end,
-                        'free_ptr': fromspace_begin,
-                        'fromspace_begin': fromspace_begin,
-                        'fromspace_end': fromspace_end
-                    }
-
+                    self.initialize(self.registers['rdi'], self.registers['rsi'])
                     if self.logging:
                         print(self.print_state())
                     self.trash_caller_saves()                        
