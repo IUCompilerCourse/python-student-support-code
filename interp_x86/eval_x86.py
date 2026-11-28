@@ -173,8 +173,8 @@ class X86Emulator:
     def eval_imm(self, e) -> int:
         if e.data == 'int_a':
            v = int(e.children[0])
-           if is_int64(v):
-               return v
+           if min_int64 <= v < 2**64:  # the assembler also accepts unsigned bit patterns
+               return to_signed(v)
            else: 
                raise Exception('eval_imm: invalid immediate:', v)
              
@@ -402,6 +402,17 @@ class X86Emulator:
                         print(self.print_state())
                     self.trash_caller_saves()                        
 
+
+                elif target == 'get_vec_length':
+                    # the same tag decoding as get_vec_length in runtime.c
+                    tag = self.registers['rdi']
+                    if (tag >> 62) & 1:
+                        length = to_signed(tag << 2) >> 4
+                    else:
+                        length = (tag & 126) >> 1
+                    self.trash_caller_saves()
+                    self.registers['rax'] = length
+                    self.log(f'CALL TO get_vec_length: {length}')
 
                 elif target == 'collect':
                     self.log(f'CALL TO collect: need {self.registers["rsi"]} bytes')
